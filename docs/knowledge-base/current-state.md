@@ -11,9 +11,12 @@ _Last updated: 2026-07-18_
   base shadcn/ui (button, card, input, label). ✅ Complete.
 - **Phase 0.5** — Foundations: linting + Prettier, theme skeleton, component
   catalog, knowledge base, test-env guardrail scaffold. ✅ Complete.
-- **Next:** Phase 1 from the main build sequence.
+- **Phase 1** — Config & feature flags: typed `config/features.ts`, flag-aware
+  `config/env.schema.ts`, `.env.example`, `feature-flags.md`. ✅ Complete.
+- **Next:** Phase 2 (database adapter + organizations schema).
 
-No product features are built yet.
+No product features are built yet — Phase 1 is config/flag skeleton only, no
+auth/db/payment logic.
 
 ## Stack / conventions in this fork
 
@@ -26,11 +29,17 @@ No product features are built yet.
 
 ## Configured flags / providers
 
-- **Feature flags:** none yet — `config/features.ts` is an empty registry.
+- **Feature flags:** registry is fully typed in `config/features.ts` (auth
+  {emailPassword, magicLink, oauth.google, oauth.github}, payments, storage,
+  phoneVerification, admin, aiProviders[], multiTenant). All resolve OFF by
+  default — no `NEXT_PUBLIC_FEATURE_*` vars set in this fork yet.
+- **Env validation:** `config/env.schema.ts` validates conditionally on flags;
+  throws at boot listing missing required secrets. Verified for all-off,
+  flag-on-missing, and flag-on-supplied cases.
 - **Database provider:** not chosen yet (Phase 2). Adapter folders scaffolded
   (`lib/db/{supabase,mongodb}`) but empty.
-- **Auth / storage / email / phone / AI / payments:** none configured; folders
-  scaffolded as empty placeholders.
+- **Auth / storage / email / phone / AI / payments:** flags exist but no logic;
+  folders scaffolded as empty placeholders.
 
 ## Intentionally deferred
 

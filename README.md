@@ -17,14 +17,15 @@ work.
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `phase-0-foundation`    | Project scaffold, shadcn/ui, folder structure, docs skeleton, CI-lite scripts.                                                        |
 | `phase-0.5-foundations` | Everything above **+** linting/Prettier, theme skeleton, component catalog, knowledge base, test-env guardrail, full folder contract. |
+| `phase-1-config-flags`  | Everything above **+** typed feature-flag registry, flag-aware env validation, full `.env.example`, feature-flags reference.          |
 
-> You are on **`phase-0.5-foundations`**.
+> You are on **`phase-1-config-flags`**.
 
 ---
 
-## Phase 0 — Foundation (this branch)
+## Phase 0 — Foundation
 
-What this branch sets up:
+What this phase sets up:
 
 - **Next.js 15 App Router** project (TypeScript, TailwindCSS v4, ESLint).
 - **shadcn/ui** configured (`components.json`, `lib/utils.ts`, theme in
@@ -59,13 +60,13 @@ npm run format       # prettier --write .
 
 ---
 
-## Phase 0.5 — Foundations (this branch)
+## Phase 0.5 — Foundations
 
 Conventions, tooling, and living docs that every future phase must follow. No
 features. Adds on top of Phase 0:
 
-- **Linting & formatting** — ESLint (`next/core-web-vitals` + `next/typescript`)
-  - Prettier + `eslint-config-prettier`; `format`/`format:check` scripts.
+- **Linting & formatting** — ESLint (`next/core-web-vitals` + `next/typescript`),
+  Prettier, and `eslint-config-prettier`; `format`/`format:check` scripts.
 - **Folder contract** — full skeleton per `CLAUDE.md` §3:
   `components/shared`, `lib/{db,auth,storage,email,phone,ai}` (with
   `lib/db/{supabase,mongodb}` and `lib/db/adapter.ts` stub), `scripts/`
@@ -81,6 +82,28 @@ features. Adds on top of Phase 0:
 - **Governing rulebook** — full `CLAUDE.md` project rulebook at repo root.
 
 The theme was adapted to Tailwind v4 (CSS-first, no `tailwind.config.ts`) — see
+`docs/knowledge-base/decisions.md`.
+
+---
+
+## Phase 1 — Config & Feature Flags (this branch)
+
+The config/flag skeleton every later feature reads from. No auth/db/payment
+logic. Adds on top of Phase 0.5:
+
+- **`config/features.ts`** — fully typed flag registry resolved from env at boot
+  via `!!process.env.X`: `auth.{emailPassword, magicLink, oauth.google,
+oauth.github}`, `payments`, `storage`, `phoneVerification`, `admin`,
+  `aiProviders[]`, `multiTenant`. Toggles use the `NEXT_PUBLIC_FEATURE_*` prefix.
+- **`config/env.schema.ts`** — Zod validation that is **flag-aware**: a
+  provider secret is required only when its flag is on. On a missing var it
+  throws at boot with a message listing exactly which vars are missing and why.
+- **`.env.example`** — every var so far, grouped by feature with comments and
+  which flag requires it.
+- **`docs/architecture/feature-flags.md`** — living reference table (flag → env
+  var → controls → required secrets). Every future phase updates it.
+
+Flag toggle naming (`NEXT_PUBLIC_FEATURE_*`) is recorded in
 `docs/knowledge-base/decisions.md`.
 
 Not yet included (deferred to later phases): auth, database adapters, payments,

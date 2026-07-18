@@ -4,6 +4,20 @@
 > entries, dated, **newest at the top**. Only decisions a future agent would
 > otherwise have to re-derive or might get wrong by guessing.
 
+## 2026-07-18 — Feature-flag env convention: NEXT_PUBLIC toggles, presence = on
+
+Flag **toggles** use the `NEXT_PUBLIC_FEATURE_*` prefix so `config/features.ts`
+resolves to the same values on the server and in the client bundle (Next.js
+inlines `NEXT_PUBLIC_*` at build time); provider **secrets** stay unprefixed and
+server-only. Flags resolve via `!!process.env.X` (presence = on) per the agreed
+shape — note the footgun: any non-empty value, including `"0"`/`"false"`,
+enables the flag, so a flag is disabled by omitting its var, not by setting it
+false. Env validation is deliberately **flag-aware**: a secret is required only
+when the flag using it is on, and `config/env.schema.ts` aggregates all missing
+required vars into one clear boot-time error. Trade-off: exposing which features
+are on to the client is acceptable (non-sensitive; the UI reveals it anyway),
+and renaming the toggle prefix later would touch every fork's `.env`.
+
 ## 2026-07-18 — Foundational architecture: flags + adapters, multi-tenant, catalog
 
 The template is built config-driven: every optional feature is gated by a flag
