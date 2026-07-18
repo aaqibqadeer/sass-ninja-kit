@@ -13,13 +13,14 @@ Development is split into phases. Each phase lives on its own branch, cut from
 the previous phase's branch, so a later branch cumulatively contains all earlier
 work.
 
-| Branch                  | Contains                                                                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `phase-0-foundation`    | Project scaffold, shadcn/ui, folder structure, docs skeleton, CI-lite scripts.                                                        |
-| `phase-0.5-foundations` | Everything above **+** linting/Prettier, theme skeleton, component catalog, knowledge base, test-env guardrail, full folder contract. |
-| `phase-1-config-flags`  | Everything above **+** typed feature-flag registry, flag-aware env validation, full `.env.example`, feature-flags reference.          |
+| Branch                  | Contains                                                                                                                                             |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `phase-0-foundation`    | Project scaffold, shadcn/ui, folder structure, docs skeleton, CI-lite scripts.                                                                       |
+| `phase-0.5-foundations` | Everything above **+** linting/Prettier, theme skeleton, component catalog, knowledge base, test-env guardrail, full folder contract.                |
+| `phase-1-config-flags`  | Everything above **+** typed feature-flag registry, flag-aware env validation, full `.env.example`, feature-flags reference.                         |
+| `phase-2-db-adapter`    | Everything above **+** database adapter interface, Supabase + MongoDB adapters, provider selector, multi-tenant schema, seed script, docker-compose. |
 
-> You are on **`phase-1-config-flags`**.
+> You are on **`phase-2-db-adapter`**.
 
 ---
 
@@ -86,7 +87,7 @@ The theme was adapted to Tailwind v4 (CSS-first, no `tailwind.config.ts`) — se
 
 ---
 
-## Phase 1 — Config & Feature Flags (this branch)
+## Phase 1 — Config & Feature Flags
 
 The config/flag skeleton every later feature reads from. No auth/db/payment
 logic. Adds on top of Phase 0.5:
@@ -106,5 +107,32 @@ oauth.github}`, `payments`, `storage`, `phoneVerification`, `admin`,
 Flag toggle naming (`NEXT_PUBLIC_FEATURE_*`) is recorded in
 `docs/knowledge-base/decisions.md`.
 
-Not yet included (deferred to later phases): auth, database adapters, payments,
-storage, phone, AI providers, admin panel.
+---
+
+## Phase 2 — Database Adapter Layer (this branch)
+
+Swappable database behind one interface. App code does `import { db } from
+"@/lib/db"` and never touches a provider. Adds on top of Phase 1:
+
+- **`lib/db/adapter.ts`** — the `DatabaseAdapter` interface (user CRUD, org CRUD,
+  org-membership CRUD; minimal, extended per-feature later).
+- **`lib/db/schema.ts`** — canonical Zod domain models (User, Organization,
+  OrganizationMember) shared by both adapters.
+- **`lib/db/supabase/adapter.ts`** — Supabase implementation, RLS-aware, queries
+  scoped by `organization_id`.
+- **`lib/db/mongodb/adapter.ts`** — Mongoose implementation, `organization_id`
+  indexed on every tenant-scoped collection.
+- **`lib/db/index.ts`** — selects the adapter from `DB_PROVIDER` (the only branch
+  point) and exports `db`.
+- **`config/env.schema.ts`** — `DB_PROVIDER` (core) + provider-conditional
+  connection vars; the `TEST_MODE` guardrail is now implemented (`TEST_DB_PATTERN`).
+- **`scripts/seed.ts`** (`pnpm seed` / `npm run seed`) — provider-aware; seeds
+  one org, one admin, one regular user.
+- **`docker-compose.yml`** — local MongoDB (only relevant for the Mongo adapter).
+- **Docs** — `docs/architecture/data-layer.md`, `docs/guides/choosing-database.md`.
+
+Run `pnpm seed` after configuring a provider (see
+`docs/guides/choosing-database.md`).
+
+Not yet included (deferred to later phases): auth, payments, storage, phone, AI
+providers, admin panel; Supabase SQL migrations / RLS policy files.

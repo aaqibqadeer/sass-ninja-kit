@@ -13,10 +13,13 @@ _Last updated: 2026-07-18_
   catalog, knowledge base, test-env guardrail scaffold. ✅ Complete.
 - **Phase 1** — Config & feature flags: typed `config/features.ts`, flag-aware
   `config/env.schema.ts`, `.env.example`, `feature-flags.md`. ✅ Complete.
-- **Next:** Phase 2 (database adapter + organizations schema).
+- **Phase 2** — Database adapter layer: `DatabaseAdapter` interface, Supabase +
+  MongoDB adapters, `lib/db/index.ts` selector, multi-tenant schema (users,
+  organizations, organization_members), `scripts/seed.ts`, docker-compose,
+  data-layer + choosing-database docs. Test guardrail now implemented. ✅ Complete.
+- **Next:** Auth phase (from the main build sequence).
 
-No product features are built yet — Phase 1 is config/flag skeleton only, no
-auth/db/payment logic.
+No product UI yet — Phase 2 is the data layer; no auth/payment logic.
 
 ## Stack / conventions in this fork
 
@@ -33,20 +36,24 @@ auth/db/payment logic.
   {emailPassword, magicLink, oauth.google, oauth.github}, payments, storage,
   phoneVerification, admin, aiProviders[], multiTenant). All resolve OFF by
   default — no `NEXT_PUBLIC_FEATURE_*` vars set in this fork yet.
-- **Env validation:** `config/env.schema.ts` validates conditionally on flags;
-  throws at boot listing missing required secrets. Verified for all-off,
-  flag-on-missing, and flag-on-supplied cases.
-- **Database provider:** not chosen yet (Phase 2). Adapter folders scaffolded
-  (`lib/db/{supabase,mongodb}`) but empty.
+- **Env validation:** `config/env.schema.ts` validates conditionally on flags
+  AND on `DB_PROVIDER`; throws at boot naming each missing required var. Verified
+  for no-env, provider-missing-secrets, provider selection, and guardrail cases.
+- **Database:** both adapters implemented (`lib/db/{supabase,mongodb}/adapter.ts`)
+  behind `DatabaseAdapter`; `DB_PROVIDER` picks one via `lib/db/index.ts`. No
+  provider is actually configured in this fork (no DB env set). `SUPABASE_*` uses
+  the service-role key; Mongo via `docker-compose.yml`.
 - **Auth / storage / email / phone / AI / payments:** flags exist but no logic;
   folders scaffolded as empty placeholders.
 
 ## Intentionally deferred
 
-- DB adapter interface + implementations, organizations/multi-tenant schema,
-  `seed.ts`/`seed-test.ts` bodies → **Phase 2**.
-- The test-env guardrail (`assertTestEnvironmentSafety`) is a **passing
-  placeholder** — real per-provider test-pattern validation lands in Phase 2.
+- Supabase SQL migrations + RLS policy files (create tables/policies to match
+  `lib/db/schema.ts`); per-request user-scoped Supabase clients (RLS enforcement)
+  → with the auth phase. Adapter currently uses the service-role key.
+- Typed `AppError` boundary (§4/§8) — adapters throw descriptive `Error`s.
+- `scripts/seed-test.ts` body (reset + reseed the test DB) — still a stub;
+  `pnpm seed` (plain seed) is implemented.
 - No theme→CSS codegen script yet (globals.css is hand-mirrored from theme.ts).
 - No auth/payments/storage/phone/AI features, no admin panel, no cookie banner.
 
@@ -56,3 +63,6 @@ auth/db/payment logic.
   `hsl(var(--x))` model, but this fork runs Tailwind v4. Theming was adapted to
   the v4 CSS-first approach — see `decisions.md` (2026-07-18).
 - `config/theme.ts` and `app/globals.css` must be kept in sync manually.
+- Importing `@/lib/db` constructs the adapter at module load, so any DB env
+  error surfaces at first import (e.g. running `pnpm seed` with no env). This is
+  intended (fail fast), but means DB env must be set before using `db`.

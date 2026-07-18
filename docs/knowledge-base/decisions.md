@@ -4,6 +4,23 @@
 > entries, dated, **newest at the top**. Only decisions a future agent would
 > otherwise have to re-derive or might get wrong by guessing.
 
+## 2026-07-18 — DB adapter layer: shared Zod models, service-role Supabase, guardrail live
+
+Both adapters map to one canonical set of Zod domain models in
+`lib/db/schema.ts` (IDs as strings, timestamps as `Date`) so app code sees an
+identical shape on Supabase or Mongo. `DB_PROVIDER` is treated as CORE and
+always required (the DB isn't optional); its connection vars are validated
+conditionally on the chosen provider, same pattern as feature secrets. The
+Supabase adapter uses the **service-role** key server-side (so seed/trusted code
+can write); per-request user-scoped clients that let RLS enforce tenancy are
+deferred to the auth phase — for now tenant scoping is enforced by explicit
+`organization_id` filters in every membership query. The Mongo adapter connects
+lazily and indexes `organization_id` (+ a unique `(organization_id, user_id)`).
+The §12 test guardrail is now **implemented**: with `TEST_MODE` on, boot fails
+unless the DB target matches `TEST_DB_PATTERN` (default `/test/i`). Deferred:
+Supabase SQL migrations + RLS policy files, and a typed `AppError` boundary
+(§4/§8) — adapters currently throw descriptive `Error`s.
+
 ## 2026-07-18 — Feature-flag env convention: NEXT_PUBLIC toggles, presence = on
 
 Flag **toggles** use the `NEXT_PUBLIC_FEATURE_*` prefix so `config/features.ts`

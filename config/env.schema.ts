@@ -4,11 +4,14 @@
  * The single validated gateway to environment variables. Application code never
  * reads `process.env.X` directly — it imports `env` from here.
  *
- * Validation is CONDITIONAL on feature flags: a provider's secret is only
- * required when the flag that uses it is on. Enabling `payments` requires
- * `STRIPE_SECRET_KEY`; leaving it off requires nothing. On a missing required
- * var the app throws at boot with a message listing exactly which vars are
- * missing and why.
+ * Validation is CONDITIONAL: a provider's secret is only required when the thing
+ * that uses it is active. Feature secrets are gated by their flag (enabling
+ * `payments` requires `STRIPE_SECRET_KEY`); database secrets are gated by
+ * `DB_PROVIDER` (choosing `supabase` requires the Supabase vars, `mongodb`
+ * requires `MONGODB_URI`). On a missing required var the app throws at boot with
+ * a message listing exactly which vars are missing and why.
+ *
+ * `DB_PROVIDER` is CORE (§2) and always required — the database is not optional.
  */
 
 import { z } from "zod";
@@ -35,6 +38,19 @@ const baseSchema = z.object({
     .enum(["development", "test", "production"])
     .default("development"),
   TEST_MODE: booleanFromString,
+  /**
+   * Regex (case-insensitive) the DB target must match when TEST_MODE is on.
+   * Defaults to "test" so an isolated `*-test*` instance passes the guardrail.
+   */
+  TEST_DB_PATTERN: z.string().min(1).default("test"),
+
+  // Database — CORE. DB_PROVIDER is always required; connection vars are
+  // required conditionally on which provider is chosen (see rules below).
+  DB_PROVIDER: z.enum(["supabase", "mongodb"]),
+  SUPABASE_URL: optionalString,
+  SUPABASE_ANON_KEY: optionalString,
+  SUPABASE_SERVICE_ROLE_KEY: optionalString,
+  MONGODB_URI: optionalString,
 
   // Auth
   AUTH_SECRET: optionalString,
@@ -76,8 +92,30 @@ interface RequirementRule {
   reason: string;
 }
 
-function requirementRules(): RequirementRule[] {
+function requirementRules(value: BaseEnv): RequirementRule[] {
   return [
+    // Database (gated by DB_PROVIDER)
+    {
+      when: value.DB_PROVIDER === "supabase",
+      key: "SUPABASE_URL",
+      reason: "DB_PROVIDER is 'supabase'",
+    },
+    {
+      when: value.DB_PROVIDER === "supabase",
+      key: "SUPABASE_ANON_KEY",
+      reason: "DB_PROVIDER is 'supabase'",
+    },
+    {
+      when: value.DB_PROVIDER === "supabase",
+      key: "SUPABASE_SERVICE_ROLE_KEY",
+      reason: "DB_PROVIDER is 'supabase' (server-side adapter)",
+    },
+    {
+      when: value.DB_PROVIDER === "mongodb",
+      key: "MONGODB_URI",
+      reason: "DB_PROVIDER is 'mongodb'",
+    },
+
     // Auth
     {
       when: isAnyAuthEnabled,
@@ -166,12 +204,12 @@ function requirementRules(): RequirementRule[] {
 }
 
 const envSchema = baseSchema.superRefine((value, ctx) => {
-  for (const rule of requirementRules()) {
+  for (const rule of requirementRules(value)) {
     if (rule.when && !value[rule.key]) {
       ctx.addIssue({
         code: "custom",
         path: [rule.key],
-        message: `${rule.key} is required because ${rule.reason}`,
+        message: `required — ${rule.reason}`,
       });
     }
   }
@@ -183,7 +221,10 @@ function parseEnv(): Env {
   const result = envSchema.safeParse(process.env);
   if (!result.success) {
     const details = result.error.issues
-      .map((issue) => `  - ${issue.message}`)
+      .map((issue) => {
+        const varName = issue.path.length ? issue.path.join(".") : "(root)";
+        return `  - ${varName}: ${issue.message}`;
+      })
       .join("\n");
     throw new Error(
       `Invalid environment configuration — fix the following and restart:\n${details}\n\n` +
@@ -198,15 +239,27 @@ export const env: Env = parseEnv();
 /**
  * Test-environment guardrail (CLAUDE.md §12).
  *
- * TODO(Phase 2): once the DB adapter exists, inspect the resolved connection
- * string / project ref and throw if it doesn't match the per-provider test
- * pattern (e.g. Supabase project-ref prefix, or a `-test` suffix on the Mongo
- * cluster name). For now this is a passing placeholder — no DB config to check.
+ * When TEST_MODE is on, the resolved database target (Supabase URL or Mongo URI)
+ * must match `TEST_DB_PATTERN` (default: /test/i). If it doesn't, refuse to
+ * start — a deliberate speed bump against pointing a destructive test/seed run
+ * at a non-test database. Tune the allow-list per fork via `TEST_DB_PATTERN`
+ * (e.g. a Supabase project-ref prefix or a `-test` Mongo cluster suffix).
  */
 export function assertTestEnvironmentSafety(): void {
   if (!env.TEST_MODE) return;
-  // TODO(Phase 2): validate DB connection target against allow-listed test
-  // patterns and throw a loud, explicit error on mismatch.
+
+  const target =
+    (env.DB_PROVIDER === "mongodb" ? env.MONGODB_URI : env.SUPABASE_URL) ?? "";
+  const matchesTestPattern = new RegExp(env.TEST_DB_PATTERN, "i").test(target);
+
+  if (!matchesTestPattern) {
+    throw new Error(
+      `TEST_MODE is on, but the configured ${env.DB_PROVIDER} database target ` +
+        `does not match the test allow-list pattern /${env.TEST_DB_PATTERN}/i. ` +
+        `Refusing to start to avoid touching a non-test database. Point it at an ` +
+        `isolated test instance, or adjust TEST_DB_PATTERN.`,
+    );
+  }
 }
 
 assertTestEnvironmentSafety();
