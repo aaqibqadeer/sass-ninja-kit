@@ -1,10 +1,24 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/*
+ * This file is the runtime mirror of config/theme.ts (CLAUDE.md §10).
+ * Token *values* are declared once in config/theme.ts; they are copied here as
+ * CSS custom properties because Tailwind v4 cannot import the TS file directly.
+ * Change a value in config/theme.ts and update the matching var below.
+ * Dark mode is class-based: `.dark` on <html> swaps each token's value.
+ */
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
   --radius: 0.625rem;
+  --font-heading: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -70,7 +84,12 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
+  --font-heading: var(--font-heading);
+  --font-body: var(--font-body);
   --font-mono: var(--font-geist-mono);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
 }
 
 @layer base {
