@@ -1,0 +1,21 @@
+# Cursor rules — sass-ninja-kit
+
+This repo is a reusable multi-tenant SaaS boilerplate template (infrastructure,
+not a single product). Honor these rules for every change:
+
+1. Config-driven: every optional feature is gated by a flag in
+   `config/features.ts`, resolved from env vars. Never hardcode an optional
+   feature as always-on.
+2. Adapter pattern: anything swappable (database, storage, email, AI providers)
+   sits behind one interface with one or more concrete implementations. App code
+   imports the interface only, never a concrete adapter directly.
+3. Multi-tenant by default: every tenant-scoped table has `organization_id`.
+   Single-tenant projects get one silent default org per user — no extra UI.
+4. Table triad rule: every new table/model ships with a Zod schema, a seed-data
+   entry, and an adapter method — in the same commit.
+5. Stay in scope: don't add features, routes, or UI beyond the current phase.
+   Note gaps with a `// Deferred to later phase` comment instead of building.
+6. Prefer editing/extending existing files over regenerating whole files.
+
+Stack: Next.js 15 (App Router) + TypeScript + TailwindCSS + shadcn/ui on Vercel.
+See `docs/architecture/overview.md`.
