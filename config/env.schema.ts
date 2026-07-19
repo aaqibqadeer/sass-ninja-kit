@@ -60,6 +60,9 @@ const baseSchema = z.object({
 
   // Auth
   AUTH_SECRET: optionalString,
+  // Email of the user to promote to platform super-admin during seeding (§14).
+  // Optional — it unlocks no secret, so there is no required-when rule for it.
+  SUPER_ADMIN_EMAIL: optionalString,
   GOOGLE_CLIENT_ID: optionalString,
   GOOGLE_CLIENT_SECRET: optionalString,
   GITHUB_CLIENT_ID: optionalString,

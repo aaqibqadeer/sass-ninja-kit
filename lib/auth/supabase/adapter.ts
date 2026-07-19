@@ -17,10 +17,7 @@ import { env } from "@/config/env.schema";
 import { db } from "@/lib/db";
 
 import type { AuthAdapter } from "../adapter";
-import {
-  ensureDefaultOrganization,
-  resolveDefaultOrganizationId,
-} from "../org";
+import { ensureDefaultOrganization, resolveActiveOrgContext } from "../org";
 import type {
   AuthUser,
   CreatedIdentity,
@@ -84,14 +81,31 @@ export class SupabaseAuthAdapter implements AuthAdapter {
     if (!existing) {
       await db.createUser({ id: su.id, email, name });
     }
-    const user: AuthUser = { id: su.id, email, name };
+    const user: AuthUser = {
+      id: su.id,
+      email,
+      name,
+      isSuperAdmin: existing?.isSuperAdmin ?? false,
+    };
     await ensureDefaultOrganization(user);
     return user;
   }
 
+  /**
+   * Resolve the active org (+ role) and the authoritative super-admin flag from
+   * the domain user row, so `Session` always carries current role/super-admin.
+   */
   private async buildSession(user: AuthUser): Promise<Session> {
-    const organizationId = await resolveDefaultOrganizationId(user.id);
-    return { user, organizationId };
+    const { organizationId, role } = await resolveActiveOrgContext(user.id);
+    const domain = await db.getUserById(user.id);
+    return {
+      user: {
+        ...user,
+        isSuperAdmin: domain?.isSuperAdmin ?? user.isSuperAdmin,
+      },
+      organizationId,
+      role,
+    };
   }
 
   async getSession(): Promise<Session | null> {
@@ -102,6 +116,7 @@ export class SupabaseAuthAdapter implements AuthAdapter {
       id: data.user.id,
       email: data.user.email ?? "",
       name: nameOf(data.user),
+      isSuperAdmin: false,
     };
     return this.buildSession(user);
   }
@@ -123,7 +138,12 @@ export class SupabaseAuthAdapter implements AuthAdapter {
       name: input.name ?? null,
     });
     return {
-      user: { id: data.user.id, email: input.email, name: input.name ?? null },
+      user: {
+        id: data.user.id,
+        email: input.email,
+        name: input.name ?? null,
+        isSuperAdmin: false,
+      },
     };
   }
 

@@ -17,6 +17,9 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/config/env.schema";
 import type { DatabaseAdapter } from "../adapter";
 import type {
+  Invitation,
+  InvitationStatus,
+  NewInvitation,
   NewOrganization,
   NewOrganizationMember,
   NewUser,
@@ -27,7 +30,7 @@ import type {
   UpdateUser,
   User,
 } from "../schema";
-import { newOrganizationMemberSchema } from "../schema";
+import { newInvitationSchema, newOrganizationMemberSchema } from "../schema";
 
 /* -- Storage row shapes (snake_case) --------------------------------------- */
 
@@ -35,6 +38,7 @@ interface UserRow {
   id: string;
   email: string;
   name: string | null;
+  is_super_admin: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -56,10 +60,24 @@ interface OrganizationMemberRow {
   updated_at: string;
 }
 
+interface InvitationRow {
+  id: string;
+  organization_id: string;
+  email: string;
+  role: string;
+  token: string;
+  status: string;
+  invited_by_user_id: string;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const TABLES = {
   users: "users",
   organizations: "organizations",
   members: "organization_members",
+  invitations: "organization_invitations",
 } as const;
 
 function toUser(row: UserRow): User {
@@ -67,6 +85,7 @@ function toUser(row: UserRow): User {
     id: row.id,
     email: row.email,
     name: row.name,
+    isSuperAdmin: row.is_super_admin ?? false,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -88,6 +107,21 @@ function toMember(row: OrganizationMemberRow): OrganizationMember {
     organizationId: row.organization_id,
     userId: row.user_id,
     role: row.role,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  };
+}
+
+function toInvitation(row: InvitationRow): Invitation {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    email: row.email,
+    role: row.role,
+    token: row.token,
+    status: row.status as Invitation["status"],
+    invitedByUserId: row.invited_by_user_id,
+    expiresAt: new Date(row.expires_at),
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -151,9 +185,17 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   async updateUser(id: string, patch: UpdateUser): Promise<User> {
+    // Map camelCase domain fields to snake_case columns.
+    const row: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (patch.email !== undefined) row.email = patch.email;
+    if (patch.name !== undefined) row.name = patch.name;
+    if (patch.isSuperAdmin !== undefined)
+      row.is_super_admin = patch.isSuperAdmin;
     const { data, error } = await this.client
       .from(TABLES.users)
-      .update({ ...patch, updated_at: new Date().toISOString() })
+      .update(row)
       .eq("id", id)
       .select()
       .single();
@@ -287,5 +329,79 @@ export class SupabaseAdapter implements DatabaseAdapter {
       .eq("organization_id", organizationId)
       .eq("user_id", userId);
     if (error) throw new Error(`supabase removeMember: ${error.message}`);
+  }
+
+  /* -- Invitations (scoped by organization_id) ---------------------------- */
+
+  async createInvitation(input: NewInvitation): Promise<Invitation> {
+    const parsed = newInvitationSchema.parse(input);
+    const { data, error } = await this.client
+      .from(TABLES.invitations)
+      .insert({
+        organization_id: parsed.organizationId,
+        email: parsed.email,
+        role: parsed.role,
+        token: parsed.token,
+        status: parsed.status,
+        invited_by_user_id: parsed.invitedByUserId,
+        expires_at: parsed.expiresAt.toISOString(),
+      })
+      .select()
+      .single();
+    if (error) throw new Error(`supabase createInvitation: ${error.message}`);
+    return toInvitation(data as InvitationRow);
+  }
+
+  async getInvitationByToken(token: string): Promise<Invitation | null> {
+    const { data, error } = await this.client
+      .from(TABLES.invitations)
+      .select()
+      .eq("token", token)
+      .maybeSingle();
+    if (error)
+      throw new Error(`supabase getInvitationByToken: ${error.message}`);
+    return data ? toInvitation(data as InvitationRow) : null;
+  }
+
+  async listInvitations(organizationId: string): Promise<Invitation[]> {
+    const { data, error } = await this.client
+      .from(TABLES.invitations)
+      .select()
+      .eq("organization_id", organizationId);
+    if (error) throw new Error(`supabase listInvitations: ${error.message}`);
+    return (data as InvitationRow[]).map(toInvitation);
+  }
+
+  async updateInvitationStatus(
+    id: string,
+    status: InvitationStatus,
+  ): Promise<Invitation> {
+    const { data, error } = await this.client
+      .from(TABLES.invitations)
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+    if (error)
+      throw new Error(`supabase updateInvitationStatus: ${error.message}`);
+    return toInvitation(data as InvitationRow);
+  }
+
+  async getPendingInvitationForEmail(
+    organizationId: string,
+    email: string,
+  ): Promise<Invitation | null> {
+    const { data, error } = await this.client
+      .from(TABLES.invitations)
+      .select()
+      .eq("organization_id", organizationId)
+      .eq("email", email)
+      .eq("status", "pending")
+      .maybeSingle();
+    if (error)
+      throw new Error(
+        `supabase getPendingInvitationForEmail: ${error.message}`,
+      );
+    return data ? toInvitation(data as InvitationRow) : null;
   }
 }

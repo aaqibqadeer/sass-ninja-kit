@@ -7,12 +7,20 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string | null;
+  /** Platform-level super-admin flag (§14) — independent of any org role. */
+  isSuperAdmin: boolean;
 }
 
 export interface Session {
   user: AuthUser;
-  /** The organization context resolved for this session (the user's default org). */
+  /** The active organization for this session (cookie-selected, else default). */
   organizationId: string | null;
+  /**
+   * The user's role in the active org (`admin` | `user` | a fork's custom role),
+   * or null when they have no membership. Typed as a string — same as
+   * `OrgRole`/`roleSchema` — so this Edge-safe module stays dependency-free.
+   */
+  role: string | null;
 }
 
 export type OAuthProvider = "google" | "github";

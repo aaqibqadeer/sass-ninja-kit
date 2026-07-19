@@ -34,14 +34,25 @@ schema and a seed entry, in the same commit (§1.4).
 
 ## Multi-tenant schema
 
-| Entity             | Table / collection     | Tenant-scoped?                  | Notes                                                                 |
-| ------------------ | ---------------------- | ------------------------------- | --------------------------------------------------------------------- |
-| User               | `users`                | No (global identity)            | `id`, `email` (unique), `name?`, timestamps                           |
-| Organization       | `organizations`        | Is the tenant boundary          | `id`, `name`, `slug` (unique), timestamps                             |
-| OrganizationMember | `organization_members` | Yes — carries `organization_id` | `organization_id` + `user_id` (unique together, both indexed), `role` |
+| Entity             | Table / collection         | Tenant-scoped?                  | Notes                                                                                                      |
+| ------------------ | -------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| User               | `users`                    | No (global identity)            | `id`, `email` (unique), `name?`, **`is_super_admin`** (platform-level, §14), timestamps                    |
+| Organization       | `organizations`            | Is the tenant boundary          | `id`, `name`, `slug` (unique), timestamps                                                                  |
+| OrganizationMember | `organization_members`     | Yes — carries `organization_id` | `organization_id` + `user_id` (unique together, both indexed), `role`                                      |
+| Invitation         | `organization_invitations` | Yes — carries `organization_id` | `email`, `role`, `token` (unique), `status` (pending/accepted/revoked), `invited_by_user_id`, `expires_at` |
 
 `role` is an extensible free string; `admin` and `user` are the built-ins
-(`ORG_ROLES` in `lib/db/schema.ts`).
+(`ORG_ROLES` in `lib/db/schema.ts`). What each role may do is defined in
+`config/permissions.ts` (Phase 4) — add a role there, no schema change.
+
+**`users.is_super_admin`** (Phase 4, §14) is a **platform-level** flag on the
+user record itself — deliberately NOT in `organization_members`, because
+pricing/billing are platform concerns independent of any org membership. It's
+independent of the `multiTenant` flag and exists identically in single- and
+multi-tenant deployments. Guarded by `requireSuperAdmin()`, which is kept
+separate from `requireRole("admin")` (an org admin is never a super-admin). For
+Supabase, add the column: `alter table users add column is_super_admin boolean
+not null default false;`. Seed promotes `SUPER_ADMIN_EMAIL` (never hardcoded).
 
 ## Provider selection
 

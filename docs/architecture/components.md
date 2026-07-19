@@ -21,19 +21,24 @@ Living catalog of every reusable component in the template.
 Unmodified shadcn/ui primitives (style: new-york). Tracked from day one so the
 catalog reflects _all_ reusable UI, not just custom components.
 
-| Component                                                                                          | Location                   | Purpose                                 | Key Props                                                                                                                    | Used In        |
-| -------------------------------------------------------------------------------------------------- | -------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| `Button`                                                                                           | `components/ui/button.tsx` | Clickable action / link-styled action.  | `variant` (default \| destructive \| outline \| secondary \| ghost \| link), `size` (default \| sm \| lg \| icon), `asChild` | `app/page.tsx` |
-| `Card` (+ `CardHeader`, `CardTitle`, `CardDescription`, `CardAction`, `CardContent`, `CardFooter`) | `components/ui/card.tsx`   | Surface container for grouped content.  | standard `div` props via `className` composition                                                                             | `app/page.tsx` |
-| `Input`                                                                                            | `components/ui/input.tsx`  | Single-line text/email/etc. form field. | native `input` props (`type`, `placeholder`, `disabled`, …)                                                                  | `app/page.tsx` |
-| `Label`                                                                                            | `components/ui/label.tsx`  | Accessible label for a form control.    | native `label` props, `htmlFor`                                                                                              | `app/page.tsx` |
+| Component                                                                                                                         | Location                          | Purpose                                                                                        | Key Props                                                                                                                    | Used In             |
+| --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| `Button`                                                                                                                          | `components/ui/button.tsx`        | Clickable action / link-styled action.                                                         | `variant` (default \| destructive \| outline \| secondary \| ghost \| link), `size` (default \| sm \| lg \| icon), `asChild` | `app/page.tsx`      |
+| `Card` (+ `CardHeader`, `CardTitle`, `CardDescription`, `CardAction`, `CardContent`, `CardFooter`)                                | `components/ui/card.tsx`          | Surface container for grouped content.                                                         | standard `div` props via `className` composition                                                                             | `app/page.tsx`      |
+| `Input`                                                                                                                           | `components/ui/input.tsx`         | Single-line text/email/etc. form field.                                                        | native `input` props (`type`, `placeholder`, `disabled`, …)                                                                  | `app/page.tsx`      |
+| `Label`                                                                                                                           | `components/ui/label.tsx`         | Accessible label for a form control.                                                           | native `label` props, `htmlFor`                                                                                              | `app/page.tsx`      |
+| `DropdownMenu` (+ `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuLabel`, `DropdownMenuSeparator`) | `components/ui/dropdown-menu.tsx` | Radix dropdown menu (new-york).                                                                | Radix `DropdownMenu.*` props; `Item` `onSelect`, `inset`                                                                     | `WorkspaceSwitcher` |
+| `Dialog` (+ `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogFooter`, `DialogTitle`, `DialogDescription`, `DialogClose`)  | `components/ui/dialog.tsx`        | Radix modal dialog (new-york). Built-in close button uses inline SVG (no icon-lib dependency). | `open`, `onOpenChange`; Radix `Dialog.*` props                                                                               | `WorkspaceSwitcher` |
 
 ## `/components/shared` — custom reusable components
 
-_None yet._ The first candidates (per §9.2) are form fields, empty states, data
-tables, modals, confirmation dialogs, file uploads, avatars, badges, loading
-skeletons, pagination, and toasts — each built here the first time it's needed,
-with an entry added to this table in the same commit.
+| Component           | Location                                  | Purpose                                                                                      | Key Props                                   | Used In                  |
+| ------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------ |
+| `WorkspaceSwitcher` | `components/shared/WorkspaceSwitcher.tsx` | Active-org dropdown + "Create organization" dialog. Render only when `features.multiTenant`. | `organizations: {id,name}[]`, `activeOrgId` | `app/dashboard/page.tsx` |
+
+Other candidates (per §9.2) — empty states, data tables, confirmation dialogs,
+avatars, badges, loading skeletons, pagination, toasts — are built here the first
+time they're needed, with an entry added in the same commit.
 
 ## `/components/auth` — auth feature components (Phase 3)
 
@@ -49,3 +54,17 @@ renders only enabled methods, so they degrade gracefully when a flag is off.
 | `OAuthButtons`      | `components/auth/OAuthButtons.tsx`      | One button per enabled OAuth provider.                               | `next?`   | `LoginForm`, `SignupForm`     |
 | `LogoutButton`      | `components/auth/LogoutButton.tsx`      | Clears the session and redirects to login.                           | _(none)_  | `app/dashboard/page.tsx`      |
 | `AuthDivider`       | `components/auth/AuthDivider.tsx`       | Labelled "or" separator between method groups.                       | `label?`  | `LoginForm`, `SignupForm`     |
+
+## `/components/org` — multi-tenant feature components (Phase 4)
+
+Feature-scoped (§9.4): reusable within the org/multi-tenant surface, gated behind
+`features.multiTenant`. Promote to `/components/shared` if a second, unrelated
+feature needs the same pattern.
+
+| Component            | Location                                | Purpose                                                    | Key Props                  | Used In                              |
+| -------------------- | --------------------------------------- | ---------------------------------------------------------- | -------------------------- | ------------------------------------ |
+| `CreateOrgForm`      | `components/org/CreateOrgForm.tsx`      | Create an org (POST `/api/org`) and switch to it.          | `onSuccess?`               | `WorkspaceSwitcher`                  |
+| `InviteMemberForm`   | `components/org/InviteMemberForm.tsx`   | Invite a member by email + role to the active org (admin). | _(none)_                   | `app/settings/organization/page.tsx` |
+| `MemberList`         | `components/org/MemberList.tsx`         | Roster with role change + remove (admin); self-row locked. | `members`, `currentUserId` | `app/settings/organization/page.tsx` |
+| `PendingInvites`     | `components/org/PendingInvites.tsx`     | Pending invitations with a revoke action (admin).          | `invites`                  | `app/settings/organization/page.tsx` |
+| `AcceptInviteButton` | `components/org/AcceptInviteButton.tsx` | Accept an invitation (POST `/api/org/invitations/accept`). | `token`                    | `app/invite/[token]/page.tsx`        |

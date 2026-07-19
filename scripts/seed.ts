@@ -14,12 +14,17 @@
  * Requires valid DB + AUTH env (see .env.example).
  */
 
+import { randomUUID } from "node:crypto";
+
 import { env } from "@/config/env.schema";
 import { auth } from "@/lib/auth";
-import { db, ORG_ROLES } from "@/lib/db";
+import { db, INVITATION_STATUSES, ORG_ROLES } from "@/lib/db";
 
 /** Shared password for the seeded users — local testing only. */
 const SEED_PASSWORD = "Password123!";
+
+/** How long seeded invitations stay valid. */
+const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 async function ensureUser(
   email: string,
@@ -57,10 +62,42 @@ async function main(): Promise<void> {
     role: ORG_ROLES.user,
   });
 
+  // Promote the platform super-admin (§14) — from SUPER_ADMIN_EMAIL, or the
+  // seeded admin as a sensible local default. Never hardcoded in app code.
+  const superAdminEmail = env.SUPER_ADMIN_EMAIL ?? admin.email;
+  const superAdminUser = await db.getUserByEmail(superAdminEmail);
+  if (superAdminUser) {
+    await db.updateUser(superAdminUser.id, { isSuperAdmin: true });
+  }
+
+  // A pending invitation so the members UI has data to render.
+  const invite = await db.createInvitation({
+    organizationId: org.id,
+    email: "invitee@example.com",
+    role: ORG_ROLES.user,
+    token: `seed-invite-${randomUUID()}`,
+    status: INVITATION_STATUSES.pending,
+    invitedByUserId: admin.id,
+    expiresAt: new Date(Date.now() + INVITE_TTL_MS),
+  });
+
   console.log("Seed complete:");
   console.log(`  organization  ${org.id} (${org.slug})`);
   console.log(`  admin user    ${admin.id} (${admin.email})`);
   console.log(`  regular user  ${member.id} (${member.email})`);
+  console.log(
+    `  super admin   ${
+      superAdminUser
+        ? superAdminEmail +
+          (env.SUPER_ADMIN_EMAIL
+            ? ""
+            : " (default; set SUPER_ADMIN_EMAIL to override)")
+        : `not promoted — ${superAdminEmail} not found`
+    }`,
+  );
+  console.log(
+    `  invitation    ${invite.email} → ${invite.status} (${org.slug})`,
+  );
   console.log(`  password for both: ${SEED_PASSWORD}`);
 
   await db.disconnect?.();

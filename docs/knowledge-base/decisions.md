@@ -4,6 +4,27 @@
 > entries, dated, **newest at the top**. Only decisions a future agent would
 > otherwise have to re-derive or might get wrong by guessing.
 
+## 2026-07-19 — Phase 4: roles/permissions, super-admin scaffold, cookie-based active org
+
+Authorization has **two tiers that never collapse** (§14): org roles via
+`config/permissions.ts` (a role→permission map, so a fork adds a role with no
+schema change — roles stay a free string) guarded by `requireRole()` /
+`requirePermission()` / API `authorize()`; and a platform `users.is_super_admin`
+flag guarded by a **separate** `requireSuperAdmin()`. Super-admin was scaffolded
+**now** (field in both adapters + `SUPER_ADMIN_EMAIL` seed promotion) even though
+the admin panel that consumes it is the next phase — the field is flag-independent
+and cheap to land early, and §15 depends on it. The workspace switcher uses a
+**cookie** (`ninjakit_active_org`) re-validated against memberships every request
+(`resolveActiveOrgContext`), **not** subdomain/path routing — provider-agnostic and
+needs no route restructure or middleware change; `Session` gained `role` +
+`user.isSuperAdmin`. Email invites (`organization_invitations` table, single-use
+token, 7-day expiry) **reuse the tiny `sendAuthEmail`** sender rather than
+building `lib/email` this phase (Resend if configured, else console.log in dev).
+Per the user's call this shipped as **one combined commit** (an explicit override
+of §1.6 for this session). All multi-tenant surfaces `404`/hide when
+`multiTenant` is off; the silent single-org path is unchanged. Not runtime-verified
+against a live DB (none configured here) — typecheck/lint/build only.
+
 ## 2026-07-19 — Auth core: two backends behind one interface, Edge-safe middleware
 
 Auth follows the same interface+adapter shape as the db layer: `@/lib/auth`

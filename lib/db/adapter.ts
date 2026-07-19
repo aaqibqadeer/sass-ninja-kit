@@ -15,6 +15,9 @@
  */
 
 import type {
+  Invitation,
+  InvitationStatus,
+  NewInvitation,
   NewOrganization,
   NewOrganizationMember,
   NewUser,
@@ -58,6 +61,20 @@ export interface DatabaseAdapter {
     role: OrgRole,
   ): Promise<OrganizationMember>;
   removeMember(organizationId: string, userId: string): Promise<void>;
+
+  /* -- Invitations (tenant-scoped by organizationId) ---------------------- */
+  createInvitation(input: NewInvitation): Promise<Invitation>;
+  getInvitationByToken(token: string): Promise<Invitation | null>;
+  listInvitations(organizationId: string): Promise<Invitation[]>;
+  updateInvitationStatus(
+    id: string,
+    status: InvitationStatus,
+  ): Promise<Invitation>;
+  /** A still-pending invite for this email in this org, if any (dedupe check). */
+  getPendingInvitationForEmail(
+    organizationId: string,
+    email: string,
+  ): Promise<Invitation | null>;
 
   /* -- Lifecycle ---------------------------------------------------------- */
   /** Close underlying connections (used by scripts like seed). Optional. */

@@ -33,7 +33,7 @@ broken page.
 | `phoneVerification`  | `NEXT_PUBLIC_FEATURE_PHONE_VERIFICATION`  | SMS phone verification (Twilio Verify)                                                          | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`                           |
 | `admin`              | `NEXT_PUBLIC_FEATURE_ADMIN`               | Admin panel routes/UI                                                                           | _(none)_                                                                                         |
 | `aiProviders`        | `NEXT_PUBLIC_FEATURE_AI_PROVIDERS`        | Enabled AI providers (comma-separated: `anthropic`, `openai`)                                   | `ANTHROPIC_API_KEY` (if list includes `anthropic`), `OPENAI_API_KEY` (if list includes `openai`) |
-| `multiTenant`        | `NEXT_PUBLIC_FEATURE_MULTI_TENANT`        | Org switching/invites UI. Off = one silent default org per user. Schema is always multi-tenant. | _(none)_                                                                                         |
+| `multiTenant`        | `NEXT_PUBLIC_FEATURE_MULTI_TENANT`        | Org switching/invites UI. Off = one silent default org per user. Schema is always multi-tenant. | _(none required; email invites reuse `RESEND_API_KEY` if set, else log to console in dev)_       |
 
 Notes:
 
@@ -46,6 +46,13 @@ Notes:
   `auth.*` flags. It did add non-flag env vars: `NEXT_PUBLIC_APP_URL` (base URL
   for OAuth redirects / email links) and `AUTH_EMAIL_FROM` (optional). See
   `docs/guides/auth-setup.md`.
+- **Phase 4 (roles & multi-tenant UX) added no new flag** — it wires the existing
+  `multiTenant` flag to real UI (org creation, email invites, workspace switcher)
+  and adds `requireRole()`/permissions (`config/permissions.ts`). It added one
+  non-flag env var, `SUPER_ADMIN_EMAIL` (optional, seed-time). **Super-admin is
+  deliberately flag-independent** — it is NOT gated behind `multiTenant` and
+  exists identically in single- and multi-tenant deployments (§14). See
+  `docs/guides/multi-tenancy.md`.
 
 ## Adding a flag (checklist, per CLAUDE.md §7)
 

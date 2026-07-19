@@ -30,10 +30,7 @@ import {
 } from "../constants";
 import { sendAuthEmail } from "../email";
 import { signToken, verifyToken } from "../jwt";
-import {
-  ensureDefaultOrganization,
-  resolveDefaultOrganizationId,
-} from "../org";
+import { ensureDefaultOrganization, resolveActiveOrgContext } from "../org";
 import type {
   AuthUser,
   CreatedIdentity,
@@ -119,8 +116,8 @@ export class MongoAuthAdapter implements AuthAdapter {
   }
 
   private async buildSession(user: AuthUser): Promise<Session> {
-    const organizationId = await resolveDefaultOrganizationId(user.id);
-    return { user, organizationId };
+    const { organizationId, role } = await resolveActiveOrgContext(user.id);
+    return { user, organizationId, role };
   }
 
   async getSession(): Promise<Session | null> {
@@ -382,6 +379,12 @@ function toAuthUser(user: {
   id: string;
   email: string;
   name?: string | null;
+  isSuperAdmin?: boolean;
 }): AuthUser {
-  return { id: user.id, email: user.email, name: user.name ?? null };
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name ?? null,
+    isSuperAdmin: user.isSuperAdmin ?? false,
+  };
 }

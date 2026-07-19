@@ -3,7 +3,7 @@
 > **Read this first, every session** (CLAUDE.md §11). Living snapshot —
 > overwritten, not appended. Update at the end of every phase/session.
 
-_Last updated: 2026-07-18_
+_Last updated: 2026-07-19_
 
 ## Phase
 
@@ -21,10 +21,19 @@ _Last updated: 2026-07-18_
   JWT+bcrypt adapters, email-password (+ reset), magic link, Google/GitHub OAuth
   (all flag-gated), `components/auth/*` UI, `middleware.ts`, login/signup/
   reset/dashboard pages, seed credentials, auth-setup docs. ✅ Complete.
-- **Next:** roles / super-admin (CLAUDE.md §14) and the admin panel.
+- **Phase 4** — Roles & multi-tenant UX: `config/permissions.ts` (role→permission
+  map), `requireRole()`/`requirePermission()`/`authorize()` guards + platform
+  `requireSuperAdmin()` (`lib/auth/roles.ts`); `users.is_super_admin` through both
+  adapters + `SUPER_ADMIN_EMAIL` seed promotion; `organization_invitations` entity
+  (schema + both adapters + seed); org creation, email invites, cookie-based
+  active-org switching (`lib/org/*`), API routes under `app/api/org/*`, the
+  `WorkspaceSwitcher` + `components/org/*`, `/settings/organization` +
+  `/invite/[token]` pages, `docs/guides/multi-tenancy.md`. ✅ Complete.
+- **Next:** admin panel + pricing/billing (CLAUDE.md §15), which builds on
+  `requireSuperAdmin()`.
 
-CLAUDE.md now has §14 Roles & Super Admin and §15 Pricing & Billing (former
-Response Style / Reference Docs renumbered to §16/§17). Neither is built yet.
+CLAUDE.md §14 Roles & Super Admin is now implemented; §15 Pricing & Billing is
+not built yet.
 
 ## Stack / conventions in this fork
 
@@ -50,10 +59,15 @@ Response Style / Reference Docs renumbered to §16/§17). Neither is built yet.
   the service-role key; Mongo via `docker-compose.yml`.
 - **Auth:** implemented behind `@/lib/auth` (Phase 3) — email/password + reset,
   magic link, Google/GitHub OAuth, all flag-gated; session + `middleware.ts`
-  route protection. No auth methods are enabled in this fork (no flags set).
+  route protection. `Session` now also carries `role` (active-org role) and
+  `user.isSuperAdmin` (Phase 4). No auth methods are enabled in this fork.
+- **Roles / multi-tenancy (Phase 4):** `config/permissions.ts` +
+  `lib/auth/roles.ts` guards; `multiTenant` now drives real UI (switcher, org
+  creation, email invites, member management) — all `404`/hidden when off.
+  Invites reuse `sendAuthEmail`. `multiTenant` is OFF in this fork.
 - **Storage / email / phone / AI / payments:** flags exist but no logic; folders
-  scaffolded as empty placeholders. (Mongo auth emails use a tiny inline Resend
-  fetch, not the future `lib/email` adapter.)
+  scaffolded as empty placeholders. (Auth + invite emails use a tiny inline
+  Resend fetch, not the future `lib/email` adapter.)
 
 ## Intentionally deferred
 
@@ -63,10 +77,14 @@ Response Style / Reference Docs renumbered to §16/§17). Neither is built yet.
 - Typed `AppError` boundary (§4/§8) — adapters throw descriptive `Error`s.
 - `scripts/seed-test.ts` body (reset + reseed the test DB) — still a stub;
   `pnpm seed` (plain seed) is implemented.
-- `lib/email` adapter — Mongo auth emails use a small inline Resend fetch for now.
-- Subdomain/path-based org routing in middleware (part of multiTenant UI).
-- Roles/super-admin (§14), pricing/billing (§15), admin panel, payments,
-  storage, phone, AI, cookie banner.
+- `lib/email` adapter — auth + invite emails use a small inline Resend fetch for
+  now (`lib/auth/email.ts`).
+- Subdomain/path-based org routing — Phase 4 chose **cookie-based** active-org
+  selection instead; subdomain/path routing remains deferred.
+- SQL migration for the Supabase `is_super_admin` column and the
+  `organization_invitations` table (documented in `data-layer.md`; no migration
+  files are generated in this fork).
+- Pricing/billing (§15), admin panel, payments, storage, phone, AI, cookie banner.
 - No theme→CSS codegen script yet (globals.css is hand-mirrored from theme.ts).
 
 ## Known rough edges
@@ -77,9 +95,10 @@ Response Style / Reference Docs renumbered to §16/§17). Neither is built yet.
 - `config/theme.ts` and `app/globals.css` must be kept in sync manually.
 - `db`/`auth` are lazy (constructed on first use). Env is still parsed at import
   (fail-fast); use `SKIP_ENV_VALIDATION=1` for builds/CI without secrets.
-- **Auth is not runtime-verified end-to-end** here (no live DB/Supabase in this
-  environment). Verified: typecheck, lint, production build, provider selection,
-  env validation + guardrail, and the JWT+bcrypt primitives. The full HTTP
-  signup→login→session flow against a real DB should be smoke-tested on a fork.
+- **Auth + multi-tenant flows are not runtime-verified end-to-end** here (no live
+  DB/Supabase in this environment). Verified: typecheck, lint, production build,
+  provider selection, env validation + guardrail, and the JWT+bcrypt primitives.
+  The full HTTP signup→login→session flow, and the Phase 4 seed→invite→accept→
+  switch flow, should be smoke-tested against a real (test) DB on a fork.
 - `jose` emits a non-fatal Edge build warning (`DecompressionStream`); its JWE
   path is bundled but never executed for HS256 — safe to ignore.
