@@ -231,13 +231,18 @@ Before writing any new component:
 
 - `config/theme.ts` holds every design token: colors, font families, spacing
   scale, radii, shadows — as a typed object.
-- These tokens are written out as CSS custom properties in `globals.css` at
-  build/runtime (e.g. `--color-primary`, `--font-heading`), so both light/dark
-  mode and any future theme swap are a matter of changing variable values, not
-  hunting through component files.
-- `tailwind.config.ts` reads from those same CSS variables
-  (`hsl(var(--color-primary))` pattern, same approach shadcn/ui uses) — so
-  Tailwind utility classes and raw CSS stay in sync automatically.
+- These tokens are mirrored as CSS custom properties in `globals.css` (e.g.
+  `--primary`, `--font-heading`) — one set in `:root` (light) and one in `.dark`
+  (dark) — so both light/dark mode and any future theme swap are a matter of
+  changing variable values, not hunting through component files.
+- This fork runs **Tailwind v4** (CSS-first): there is **no `tailwind.config.ts`**.
+  `globals.css` exposes each CSS var to Tailwind via an `@theme inline` block, so
+  utilities like `bg-primary` / `text-muted-foreground` and raw `var(--primary)`
+  stay in sync automatically. (Token values are `oklch`, not `hsl`.) Because v4
+  can't import a `.ts` file at build time, `globals.css` is a **hand-mirrored**
+  copy of `config/theme.ts` — change a token in both. See
+  `docs/architecture/theming.md` for the full mechanism and the deferred codegen
+  idea.
 - No component ever hardcodes a color, font, or spacing value. If a value isn't
   in the theme yet, add it to `config/theme.ts` first, then use it — don't reach
   for an arbitrary Tailwind value like `text-[#1a2b3c]` as a shortcut.

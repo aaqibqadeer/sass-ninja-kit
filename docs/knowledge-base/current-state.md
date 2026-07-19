@@ -64,8 +64,15 @@ CustomerId`); `organizations` gained `stripeCustomerId` + `trialEndsAt`;
   (client, first-party `ninjakit_cookie_consent` cookie); legal templates
   (`docs/legal-templates/{privacy-policy,terms-of-service,cookie-policy}.md`) with
   `[PLACEHOLDER]` fields + `docs/prompts/generate-legal-docs.md`. ✅ Complete.
-- **Next:** Phase 10 (docs finalization). Remaining template backlog: Supabase SQL
-  migrations/RLS, seed-test body, theme→CSS codegen.
+- **Phase 10** — Docs & prompts finalization: reconciled CLAUDE.md §10 (Tailwind
+  v4, was v3) and expanded `.cursorrules`; wrote all 6 `docs/prompts/*`
+  (scaffold-new-saas, add-crud-feature, add-admin-panel-page, write-seed-data,
+  debug-checklist, generate-legal-docs); full `getting-started.md` + new
+  `deployment.md`; refreshed `docs/README.md` index; grew `glossary.md`; seeded
+  `docs/llm-context/`. ✅ Complete.
+- **Template status: v1.0.0 — feature-complete.** Remaining backlog is optional
+  hardening, not blocking: Supabase SQL migration/RLS files, `seed-test.ts` body,
+  theme→CSS codegen, a shared HTTP SSE helper for AI streaming.
 
 CLAUDE.md §14 Roles & Super Admin and §15 Pricing & Billing are now fully
 implemented — data layer, adapters, and the super-admin admin-panel UI (plan CRUD,

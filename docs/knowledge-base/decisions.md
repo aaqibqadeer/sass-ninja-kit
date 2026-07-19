@@ -4,6 +4,23 @@
 > entries, dated, **newest at the top**. Only decisions a future agent would
 > otherwise have to re-derive or might get wrong by guessing.
 
+## 2026-07-19 — Phase 10: docs finalization (template v1.0.0)
+
+Closes the template. **CLAUDE.md and `.cursorrules` were already complete**, so
+per the user's call we **reconciled rather than rewrote**: fixed CLAUDE.md §10
+(it still described the Tailwind **v3** `tailwind.config.ts` + `hsl(var(--x))`
+model; the fork is v4 CSS-first with `@theme inline` + `oklch` — now matches
+`theming.md`) and lightly expanded `.cursorrules` (theming/v4, super-admin
+separation, Zod-at-boundary, "read current-state first"). Established the
+**prompt-file format** (framing → fenced copy-paste block with `[INPUTS]` →
+related-links footer) across all six `docs/prompts/*`. Wrote a full
+`getting-started.md` (standardized on **pnpm**, dropped the stub's `npm` +
+`seed:test` claims since `seed:test` is still a stub) and a new `deployment.md`
+(stresses `NEXT_PUBLIC_*` are build-time and `SKIP_ENV_VALIDATION` is build/CI
+only). Refreshed `docs/README.md` (removed the stale "populated later" notes) and
+seeded `docs/llm-context/` as a pointer to the distilled rulebook rather than
+duplicating content. Marked the template **v1.0.0**.
+
 ## 2026-07-19 — Phase 9: SEO metadata, sitemap/robots, cookie banner, legal templates
 
 SEO plumbing is **not flag-gated** (every fork wants it): the root `metadata`
