@@ -110,3 +110,6 @@ export const isAnyAuthEnabled: boolean =
   features.auth.magicLink ||
   features.auth.oauth.google ||
   features.auth.oauth.github;
+
+/** True when at least one AI provider is enabled. */
+export const isAnyAiEnabled: boolean = features.aiProviders.length > 0;

@@ -93,6 +93,9 @@ const baseSchema = z.object({
   // AI providers
   ANTHROPIC_API_KEY: optionalString,
   OPENAI_API_KEY: optionalString,
+  // Optional preferred default provider when several are enabled. Unlocks no
+  // secret, so it has no required-when rule; falls back to the first enabled.
+  AI_DEFAULT_PROVIDER: z.enum(["anthropic", "openai"]).optional(),
 });
 
 type BaseEnv = z.infer<typeof baseSchema>;

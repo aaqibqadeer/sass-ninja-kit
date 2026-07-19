@@ -51,9 +51,15 @@ CustomerId`); `organizations` gained `stripeCustomerId` + `trialEndsAt`;
   `payments.getLatestCharge`); trialDays editor. New primitives (Badge/Table/Switch/
   sonner `Toaster`) + shared `ConfirmDialog`/`DataTable`/`EmptyState`. Admin API
   routes under `app/api/admin/*`. ✅ Complete.
-- **Next:** all three assigned phases (5–7) are complete. Remaining template
-  backlog: AI providers, cookie banner, Supabase SQL migrations/RLS, seed-test body,
-  theme→CSS codegen.
+- **Phase 8** — AI integration: `@/lib/ai` seam — `AiAdapter` interface
+  (`generate()`/`stream()`) with Anthropic (`@anthropic-ai/sdk`) + OpenAI
+  (`openai`) adapters; provider-keyed selector `ai(provider?)` (the `aiProviders`
+  flag is an array), default model per provider in `lib/ai/models.ts`, optional
+  `AI_DEFAULT_PROVIDER` env; example smoke-test route `app/api/ai/generate`;
+  `ai-providers.md` guide. ✅ Complete.
+- **Next:** Phase 9 (SEO & legal) then Phase 10 (docs finalization). Remaining
+  template backlog: cookie banner (Phase 9), Supabase SQL migrations/RLS,
+  seed-test body, theme→CSS codegen.
 
 CLAUDE.md §14 Roles & Super Admin and §15 Pricing & Billing are now fully
 implemented — data layer, adapters, and the super-admin admin-panel UI (plan CRUD,
@@ -105,7 +111,11 @@ cross-org cancel/refund).
   404 when off). Org-admin tabs + super-admin plan CRUD / cross-org subscriptions /
   trialDays. Uses sonner toasts (mounted in root layout). `admin` flag is OFF in
   this fork.
-- **AI:** flag exists but no logic; folder is an empty placeholder.
+- **AI (Phase 8):** implemented behind `@/lib/ai` — `AiAdapter` interface with
+  Anthropic + OpenAI adapters (official SDKs), provider-keyed selector, example
+  `app/api/ai/generate` route (404 when off). `aiProviders` is an array flag; it's
+  empty (OFF) in this fork — no provider keys set. `stream()` exists on the
+  adapter but there's no shared HTTP SSE helper yet.
 
 ## Intentionally deferred
 

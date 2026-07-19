@@ -72,6 +72,12 @@ Notes:
   use `requireSuperAdmin()` — the two tiers never collapse (§14). `subscriptions`
   additionally requires `payments.enabled`; annual price fields in the plan editor
   show only when `payments.annualBilling` is on.
+- **Phase 8 (AI integration) added no new flag** — it implements the existing
+  `aiProviders` array flag behind `@/lib/ai` (Anthropic + OpenAI adapters, one
+  interface). It added one optional non-flag env var, `AI_DEFAULT_PROVIDER`
+  (`anthropic`|`openai`), which picks the default provider when several are
+  enabled; unset falls back to the first enabled provider. It unlocks no secret,
+  so it has no required-when rule. See `docs/guides/ai-providers.md`.
 
 ## Adding a flag (checklist, per CLAUDE.md §7)
 

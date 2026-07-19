@@ -4,6 +4,27 @@
 > entries, dated, **newest at the top**. Only decisions a future agent would
 > otherwise have to re-derive or might get wrong by guessing.
 
+## 2026-07-19 — Phase 8: AI integration (Anthropic + OpenAI behind one interface)
+
+Two providers landed behind the standard `@/lib/ai` seam — `AiAdapter` interface
+(`generate()` / `stream()`) with `anthropic/` and `openai/` implementations. Two
+choices differ from the other adapters. **(1) Official SDKs over raw `fetch`** —
+unlike the Twilio/Resend adapters, we added `@anthropic-ai/sdk` and `openai`
+(user-confirmed) because they handle streaming and typing cleanly and follow the
+Stripe/AWS-SDK precedent; hand-rolling SSE parsing for two providers wasn't worth
+it. **(2) Provider-keyed accessor, not a single singleton** — `aiProviders` is an
+**array** (several providers enable-able at once), so `lib/ai/index.ts` exposes
+`ai(provider?)` with lazy per-provider caching rather than one global instance
+like storage/phone/payments. Default provider = optional `AI_DEFAULT_PROVIDER`
+env (no secret, no required-when rule) else the first enabled entry. DTOs are
+provider-neutral (no SDK type past the seam); default model ids live in
+`lib/ai/models.ts` so none are hardcoded in app code (§8). The example route
+`app/api/ai/generate` is a non-streaming smoke test following the flag-404 →
+`authorize()` → Zod contract; `stream()` exists on the adapter but the repo has
+**no shared SSE helper yet** (noted for a future phase). Not runtime-verified
+against live provider APIs (no keys here): typecheck + prod build pass, and the
+selector/route 404 correctly when AI is off.
+
 ## 2026-07-19 — Phase 7: admin panel, two-tier guards, sonner toasts
 
 The `/admin` route group is entered by an **org admin OR a super-admin** (layout
