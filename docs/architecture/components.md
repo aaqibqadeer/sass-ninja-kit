@@ -32,9 +32,11 @@ catalog reflects _all_ reusable UI, not just custom components.
 
 ## `/components/shared` — custom reusable components
 
-| Component           | Location                                  | Purpose                                                                                      | Key Props                                   | Used In                  |
-| ------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------ |
-| `WorkspaceSwitcher` | `components/shared/WorkspaceSwitcher.tsx` | Active-org dropdown + "Create organization" dialog. Render only when `features.multiTenant`. | `organizations: {id,name}[]`, `activeOrgId` | `app/dashboard/page.tsx` |
+| Component           | Location                                  | Purpose                                                                                                                                | Key Props                                                 | Used In                                 |
+| ------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------- |
+| `WorkspaceSwitcher` | `components/shared/WorkspaceSwitcher.tsx` | Active-org dropdown + "Create organization" dialog. Render only when `features.multiTenant`.                                           | `organizations: {id,name}[]`, `activeOrgId`               | `app/dashboard/page.tsx`                |
+| `FileUpload`        | `components/shared/FileUpload.tsx`        | Presigned-URL file uploader (POST `/api/storage/upload-url` → PUT to storage). Renders null when `features.storage` is off.            | `onUploaded?(: {key})`, `accept?`, `label?`, `maxSizeMb?` | _(Phase 6 — drop into any form)_        |
+| `PhoneVerify`       | `components/shared/PhoneVerify.tsx`       | Two-step SMS verification (start → check). Placement-agnostic via `onVerified`. Renders null when `features.phoneVerification` is off. | `defaultPhone?`, `onVerified?(phone)`                     | _(Phase 6 — signup / settings / modal)_ |
 
 Other candidates (per §9.2) — empty states, data tables, confirmation dialogs,
 avatars, badges, loading skeletons, pagination, toasts — are built here the first

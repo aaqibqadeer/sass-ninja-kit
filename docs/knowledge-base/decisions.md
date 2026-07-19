@@ -4,6 +4,25 @@
 > entries, dated, **newest at the top**. Only decisions a future agent would
 > otherwise have to re-derive or might get wrong by guessing.
 
+## 2026-07-19 — Phase 6: storage/phone/email adapters, one email sender
+
+Three swappable concerns landed behind the standard interface+adapter+selector
+shape. **Storage** = S3 presigned URLs (`@aws-sdk/client-s3` +
+`s3-request-presigner`); bytes go client→S3 directly, never through the app
+server; works with S3-compatible endpoints (R2/MinIO) via optional
+`AWS_S3_ENDPOINT`. AWS creds are required only when `STORAGE_PROVIDER=s3` (env
+rule mirrors the DB_PROVIDER value-gated pattern). **Phone** = Twilio Verify over
+plain `fetch` (Basic auth, **no SDK** — same lightweight choice as the email
+sender), so Twilio owns code gen/delivery/expiry. **Email** = a single
+`sendEmail()` in `lib/email/send.ts` (lifted from the old tiny `lib/auth/email.ts`,
+which was **deleted** per §1.5); the 3 call sites — password reset, magic link,
+org invite — now import it. Both shared components (`FileUpload`, `PhoneVerify`)
+**render null when their flag is off** so they degrade gracefully wherever
+dropped. `PhoneVerify` uses a plain numeric `Input` for the code rather than
+adding an `input-otp` primitive/dependency this phase — kept intentionally boring;
+can upgrade later. Not runtime-verified against live S3/Twilio (none here):
+typecheck + lint + prod build pass.
+
 ## 2026-07-19 — Phase 5: payments data layer, org-scoped billing, nested payments flag
 
 Billing is **organization-scoped** (user's call over user-scoped): `subscriptions`

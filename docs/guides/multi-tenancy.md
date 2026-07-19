@@ -93,10 +93,9 @@ SUPER_ADMIN_EMAIL=you@example.com   # optional; promoted at seed time
 ## Invitations
 
 - Created `pending` with a random `token` and a 7-day expiry
-  (`lib/org/invitations.ts`), then emailed via the existing `sendAuthEmail`
-  sender — **Resend if `RESEND_API_KEY` is set, otherwise the link is logged to
-  the server console** (handy in local dev). A full `lib/email` adapter is a
-  later phase.
+  (`lib/org/invitations.ts`), then emailed via `sendEmail`
+  (`lib/email/send.ts`) — **Resend if `RESEND_API_KEY` is set, otherwise the link
+  is logged to the server console** (handy in local dev).
 - Accepting validates the token is pending, unexpired, and addressed to the
   signed-in user's email, then adds the membership and marks the invite
   `accepted`. Tokens are single-use.

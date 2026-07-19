@@ -28,7 +28,7 @@ import {
   TOKEN_PURPOSE,
   sessionCookieOptions,
 } from "../constants";
-import { sendAuthEmail } from "../email";
+import { sendEmail } from "@/lib/email/send";
 import { signToken, verifyToken } from "../jwt";
 import { ensureDefaultOrganization, resolveActiveOrgContext } from "../org";
 import type {
@@ -188,7 +188,7 @@ export class MongoAuthAdapter implements AuthAdapter {
       RESET_TOKEN_TTL_SECONDS,
     );
     const url = `${env.NEXT_PUBLIC_APP_URL}/reset-password?token=${encodeURIComponent(token)}`;
-    await sendAuthEmail({
+    await sendEmail({
       to: email,
       subject: "Reset your password",
       text: `Reset your password: ${url}`,
@@ -216,7 +216,7 @@ export class MongoAuthAdapter implements AuthAdapter {
       MAGIC_LINK_TTL_SECONDS,
     );
     const url = `${env.NEXT_PUBLIC_APP_URL}/api/auth/magic-link/verify?token=${encodeURIComponent(token)}`;
-    await sendAuthEmail({
+    await sendEmail({
       to: email,
       subject: "Your sign-in link",
       text: `Sign in: ${url}`,

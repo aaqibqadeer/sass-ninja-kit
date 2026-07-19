@@ -76,8 +76,14 @@ const baseSchema = z.object({
   STRIPE_WEBHOOK_SECRET: optionalString,
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: optionalString,
 
-  // Storage
+  // Storage (S3 / S3-compatible)
   STORAGE_PROVIDER: optionalString,
+  AWS_S3_BUCKET: optionalString,
+  AWS_REGION: optionalString,
+  AWS_ACCESS_KEY_ID: optionalString,
+  AWS_SECRET_ACCESS_KEY: optionalString,
+  // Optional custom endpoint for S3-compatible providers (R2, MinIO). No rule.
+  AWS_S3_ENDPOINT: optionalString,
 
   // Phone verification (Twilio Verify)
   TWILIO_ACCOUNT_SID: optionalString,
@@ -179,6 +185,27 @@ function requirementRules(value: BaseEnv): RequirementRule[] {
       when: features.storage,
       key: "STORAGE_PROVIDER",
       reason: "storage is on",
+    },
+    // S3 credentials — required when storage uses the S3 provider.
+    {
+      when: features.storage && value.STORAGE_PROVIDER === "s3",
+      key: "AWS_S3_BUCKET",
+      reason: "storage is on with STORAGE_PROVIDER=s3",
+    },
+    {
+      when: features.storage && value.STORAGE_PROVIDER === "s3",
+      key: "AWS_REGION",
+      reason: "storage is on with STORAGE_PROVIDER=s3",
+    },
+    {
+      when: features.storage && value.STORAGE_PROVIDER === "s3",
+      key: "AWS_ACCESS_KEY_ID",
+      reason: "storage is on with STORAGE_PROVIDER=s3",
+    },
+    {
+      when: features.storage && value.STORAGE_PROVIDER === "s3",
+      key: "AWS_SECRET_ACCESS_KEY",
+      reason: "storage is on with STORAGE_PROVIDER=s3",
     },
 
     // Phone verification

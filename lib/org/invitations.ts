@@ -1,7 +1,7 @@
 /**
  * lib/org/invitations.ts — email-based org invitations (multi-tenant UX).
- * Node-only. Reuses the tiny `sendAuthEmail` sender (Resend-if-configured, else
- * console.log dev fallback) — a full `lib/email` adapter is a later phase.
+ * Node-only. Sends the accept link via `sendEmail` (`lib/email/send.ts`) —
+ * Resend if configured, else console.log in dev.
  *
  * Token/expiry/status are generated here, not by callers. Tokens are single-use:
  * accepting flips status to `accepted`; withdrawing flips it to `revoked`.
@@ -16,7 +16,7 @@ import {
   type Invitation,
   type Organization,
 } from "@/lib/db/schema";
-import { sendAuthEmail } from "@/lib/auth/email";
+import { sendEmail } from "@/lib/email/send";
 import type { AuthUser } from "@/lib/auth/types";
 
 /** How long a new invitation stays valid. */
@@ -67,7 +67,7 @@ export async function inviteToOrg(
   });
 
   const url = `${env.NEXT_PUBLIC_APP_URL}/invite/${invitation.token}`;
-  await sendAuthEmail({
+  await sendEmail({
     to: email,
     subject: `You're invited to join ${org.name}`,
     text: `You've been invited to join ${org.name}. Accept your invitation: ${url}`,

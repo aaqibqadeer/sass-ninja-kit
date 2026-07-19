@@ -37,8 +37,14 @@ CustomerId`); `organizations` gained `stripeCustomerId` + `trialEndsAt`;
   createPrice/deactivatePrice/webhook) with Price-immutability + refund-amount
   validation; `hasAccess()`, `resolveTrialEndsAt()` wired into org creation;
   `app/api/payments/{checkout,portal,webhook}`; `payments-setup.md`. ✅ Complete.
-- **Next:** Phase 6 (storage/phone/email adapters) then Phase 7 (admin panel +
-  super-admin plan/subscription UIs, which consume Phase 5's adapter methods).
+- **Phase 6** — Storage/Phone/Email: `lib/storage` (S3 presigned URLs) +
+  `FileUpload`; `lib/phone` (Twilio Verify over fetch) + `PhoneVerify`;
+  `lib/email/send.ts` (single `sendEmail`, replaced + deleted `lib/auth/email.ts`,
+  repointed reset/magic-link/invite call sites); `app/api/storage/upload-url`,
+  `app/api/phone/{start,check}`; S3 env vars + rules; `storage-phone-email.md`.
+  ✅ Complete.
+- **Next:** Phase 7 (admin panel + super-admin plan CRUD / cross-org subscription
+  cancel+refund UIs, which consume Phase 5's adapter methods).
 
 CLAUDE.md §14 Roles & Super Admin and §15 Pricing & Billing (data layer +
 adapter) are now implemented. The admin/super-admin **UI** for plan CRUD and
@@ -74,15 +80,19 @@ cancel/refund is Phase 7 (not built yet).
 - **Roles / multi-tenancy (Phase 4):** `config/permissions.ts` +
   `lib/auth/roles.ts` guards; `multiTenant` now drives real UI (switcher, org
   creation, email invites, member management) — all `404`/hidden when off.
-  Invites reuse `sendAuthEmail`. `multiTenant` is OFF in this fork.
+  Invites use `sendEmail` (Phase 6). `multiTenant` is OFF in this fork.
 - **Payments (Phase 5):** implemented behind `@/lib/payments` (Stripe adapter) —
   checkout/portal/cancel/refund/createPrice/webhook, `hasAccess()`, trials. Data
   layer (`plans`, `app_settings`, `subscriptions`, org billing columns) in both DB
   adapters + seed. `payments` flag is OFF in this fork; no Stripe keys set. Admin
   UI that drives plan CRUD / cancel / refund is Phase 7.
-- **Storage / email / phone / AI:** flags exist but no logic; folders scaffolded
-  as empty placeholders (Phase 6 builds storage/phone/email). Auth + invite emails
-  still use a tiny inline Resend fetch, not the future `lib/email` adapter.
+- **Storage / phone / email (Phase 6):** implemented behind `@/lib/storage`
+  (S3), `@/lib/phone` (Twilio Verify), and `@/lib/email/send.ts` (the single
+  `sendEmail`). `storage` + `phoneVerification` flags are OFF in this fork (no AWS/
+  Twilio creds). Email is not flag-gated — auth + invites now call `sendEmail`
+  (Resend if `RESEND_API_KEY` set, else console in dev); `lib/auth/email.ts` was
+  deleted. `FileUpload` / `PhoneVerify` shared components render null when off.
+- **AI:** flag exists but no logic; folder is an empty placeholder.
 
 ## Intentionally deferred
 
