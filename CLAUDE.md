@@ -301,16 +301,84 @@ later. It does not apply to trivial implementation details (variable naming,
 which shadcn component variant to start from) — use judgment on scale, but
 default to asking when unsure whether something is trivial.
 
-## 14. Response Style for This Repo
+## 14. Roles & Super Admin
+
+Two independent role tiers exist — don't conflate them:
+
+- Org-level roles (`organization_members.role`): `admin` | `user`, extensible to
+  more roles later without a schema change (see Phase 4 of the build sequence).
+  Scoped to a single organization — an org admin has no power outside their own
+  org.
+- Platform-level `super_admin`: a flag on the user record itself (e.g.
+  `users.is_super_admin` or `users.platform_role`), NOT stored in
+  `organization_members`. This is deliberate — pricing and billing are platform
+  concerns, not per-org concerns, so super admin power must not depend on org
+  membership or role at all.
+- Super admin exists identically in single-tenant and multi-tenant deployments.
+  Even a single-tenant deployment (one default org per user) is still one
+  platform with one set of plans — it still needs exactly one super admin who can
+  manage pricing and billing across the whole deployment. Never gate super admin
+  behind `multiTenant` being true.
+- Super admin can, regardless of org boundaries:
+  - Create, edit, deactivate, and reorder pricing plans (see §15)
+  - View all organizations' subscriptions
+  - Cancel any subscription
+  - Issue a refund on any subscription/charge
+- `requireSuperAdmin()` is a separate guard from `requireRole('admin')` — being
+  an org admin never implies super admin. Do not let these two checks collapse
+  into one condition anywhere.
+- Seeding the first super admin: via `scripts/seed.ts`, promoted from a
+  `SUPER_ADMIN_EMAIL` env var (or set manually in the DB for an existing user) —
+  never hardcoded in application code.
+
+## 15. Pricing Plans & Billing
+
+- `plans` is a platform-level table — no `organization_id`. Plans belong to the
+  platform, not to a tenant; this is an intentional, sole exception to the "every
+  table is tenant-scoped" rule in §1.3, and should be called out as such wherever
+  the schema is documented.
+- Fields: `id`, `name`, `description`, `priceMonthly`, `priceAnnual` (nullable),
+  `annualDiscountPercent` (nullable), `features`/`limits` (JSON — used by
+  `hasAccess()`), `isActive`, `sortOrder`.
+- Minimum 3 plans, no hard ceiling. Seed data ships with 3 placeholder plans, but
+  count and content are just data — super admin can add, edit, deactivate, or
+  remove plans at any time via the admin panel. Never hardcode a plan count or
+  plan name in application logic; always read from the `plans` table.
+- Billing cadence is flag-gated: `features.payments.annualBilling`. When true,
+  each plan may independently set `priceAnnual` + `annualDiscountPercent`; when
+  false, only `priceMonthly` is used and the annual fields stay null. Toggling
+  this flag never requires a schema change.
+- Stripe Price immutability gotcha: Stripe Price objects can't be edited in
+  place. When a super admin changes a plan's price, the adapter must create a new
+  Stripe Price, mark the old one inactive, and link the plan to the new price ID
+  — existing subscribers stay on their original price unless explicitly migrated
+  by the super admin (never silently repriced). Note this behavior in
+  `docs/architecture/data-layer.md` or a dedicated `docs/guides/payments-setup.md`
+  section — it's a common source of confusion and must not be "fixed" by trying
+  to mutate a Stripe Price directly.
+- Admin panel (super admin only) gets: plan CRUD, a cross-org subscription list,
+  a cancel-subscription action, and a refund action — each calling
+  `lib/payments/` adapter methods (`cancelSubscription()`, `refundSubscription()`),
+  never calling Stripe directly from a route handler. `refundSubscription()`
+  supports partial refunds: it takes an optional `amount` parameter — omitted
+  means a full refund, provided means a partial refund — and must validate that
+  `amount` does not exceed the original charge total.
+- `hasAccess(user, feature)` (from Phase 5 of the build sequence) reads limits
+  from the user's active plan's `features`/`limits` JSON — extend it, don't
+  duplicate its logic elsewhere.
+- This extends the existing rule in §8: plan names, prices, and discounts are
+  never hardcoded — always admin-editable data.
+
+## 16. Response Style for This Repo
 
 - Lead with the diff/code, not a restatement of what was asked.
 - Keep prose explanations short — a few lines on why, not a tutorial.
 - End every phase/feature with the exact git commands to commit, using
   conventional commit format: `feat:`, `fix:`, `chore:`, `docs:`.
-- If a request would break §1–§13 above, say so directly before proceeding, and
+- If a request would break §1–§15 above, say so directly before proceeding, and
   propose the compliant version — don't quietly do the non-compliant thing.
 
-## 15. Reference Docs (read these when relevant, don't restate their contents here)
+## 17. Reference Docs (read these when relevant, don't restate their contents here)
 
 - `docs/architecture/overview.md` — philosophy in more depth
 - `docs/architecture/feature-flags.md` — full flag reference, keep current

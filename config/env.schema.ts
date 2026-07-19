@@ -44,6 +44,12 @@ const baseSchema = z.object({
    */
   TEST_DB_PATTERN: z.string().min(1).default("test"),
 
+  // App base URL — used to build OAuth redirect URIs and email links.
+  NEXT_PUBLIC_APP_URL: z.string().min(1).default("http://localhost:3000"),
+  // From-address for transactional auth emails (magic link / reset) sent via
+  // Resend in the custom (MongoDB) flow. Optional; defaults to Resend's sandbox.
+  AUTH_EMAIL_FROM: optionalString,
+
   // Database — CORE. DB_PROVIDER is always required; connection vars are
   // required conditionally on which provider is chosen (see rules below).
   DB_PROVIDER: z.enum(["supabase", "mongodb"]),
@@ -219,19 +225,35 @@ export type Env = z.infer<typeof envSchema>;
 
 function parseEnv(): Env {
   const result = envSchema.safeParse(process.env);
-  if (!result.success) {
-    const details = result.error.issues
-      .map((issue) => {
-        const varName = issue.path.length ? issue.path.join(".") : "(root)";
-        return `  - ${varName}: ${issue.message}`;
-      })
-      .join("\n");
-    throw new Error(
-      `Invalid environment configuration — fix the following and restart:\n${details}\n\n` +
-        `See .env.example for every variable and which feature flag requires it.`,
-    );
+  if (result.success) return result.data;
+
+  // Escape hatch for builds / type generation / CI without real secrets
+  // (the pattern used by t3-env). Never set this at runtime.
+  if (process.env.SKIP_ENV_VALIDATION) {
+    const partial = baseSchema.partial().safeParse(process.env);
+    return {
+      ...(partial.success ? partial.data : {}),
+      NODE_ENV: (process.env.NODE_ENV as Env["NODE_ENV"]) ?? "development",
+      TEST_MODE: false,
+      TEST_DB_PATTERN: process.env.TEST_DB_PATTERN ?? "test",
+      NEXT_PUBLIC_APP_URL:
+        process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+      DB_PROVIDER:
+        (process.env.DB_PROVIDER as Env["DB_PROVIDER"]) ?? "supabase",
+    } as Env;
   }
-  return result.data;
+
+  const details = result.error.issues
+    .map((issue) => {
+      const varName = issue.path.length ? issue.path.join(".") : "(root)";
+      return `  - ${varName}: ${issue.message}`;
+    })
+    .join("\n");
+  throw new Error(
+    `Invalid environment configuration — fix the following and restart:\n${details}\n\n` +
+      `See .env.example for every variable and which feature flag requires it.\n` +
+      `(Set SKIP_ENV_VALIDATION=1 to bypass this for builds/CI without secrets.)`,
+  );
 }
 
 export const env: Env = parseEnv();

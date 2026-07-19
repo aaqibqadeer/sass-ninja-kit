@@ -1,0 +1,56 @@
+/**
+ * middleware.ts — route protection (CLAUDE.md Phase 3 step 4).
+ *
+ * Redirects unauthenticated users away from protected routes to /login (with a
+ * `next` param to return them afterwards). Public routes (auth pages, the auth
+ * API, and the marketing home) are always allowed. Provider-specific session
+ * reading (and Supabase cookie refresh) is delegated to the Edge-safe
+ * `getEdgeSession` so this file stays provider-agnostic.
+ *
+ * Org context: the session resolves the user's default organization server-side
+ * (Session.organizationId). Subdomain/path-based org routing is part of the
+ * multiTenant UI and is deferred to that phase.
+ */
+
+import { NextResponse, type NextRequest } from "next/server";
+
+import { LOGIN_PATH } from "@/lib/auth/constants";
+import { getEdgeSession } from "@/lib/auth/edge";
+
+const PUBLIC_PATHS = [
+  LOGIN_PATH,
+  "/signup",
+  "/reset-password",
+  "/forgot-password",
+];
+
+function isPublicPath(pathname: string): boolean {
+  if (pathname === "/") return true;
+  if (pathname.startsWith("/api/auth")) return true;
+  return PUBLIC_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+}
+
+export async function middleware(request: NextRequest): Promise<NextResponse> {
+  const { isAuthenticated, response } = await getEdgeSession(request);
+  const { pathname } = request.nextUrl;
+
+  if (isPublicPath(pathname)) return response;
+
+  if (!isAuthenticated) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = LOGIN_PATH;
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return response;
+}
+
+export const config = {
+  matcher: [
+    // Everything except Next internals and static assets.
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
+};

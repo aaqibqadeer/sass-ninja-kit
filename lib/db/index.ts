@@ -28,7 +28,26 @@ function createAdapter(): DatabaseAdapter {
   }
 }
 
-export const db: DatabaseAdapter = createAdapter();
+/**
+ * The adapter is created lazily on first use (not at import) so that merely
+ * importing `@/lib/db` — e.g. during a Next build's page-data collection —
+ * doesn't require a configured connection. Construction happens the first time a
+ * method is called.
+ */
+let instance: DatabaseAdapter | null = null;
+function getInstance(): DatabaseAdapter {
+  return (instance ??= createAdapter());
+}
+
+export const db: DatabaseAdapter = new Proxy({} as DatabaseAdapter, {
+  get(_target, prop) {
+    const target = getInstance() as unknown as Record<PropertyKey, unknown>;
+    const value = target[prop];
+    return typeof value === "function"
+      ? (value as (...args: unknown[]) => unknown).bind(target)
+      : value;
+  },
+});
 
 export type { DatabaseAdapter } from "./adapter";
 export * from "./schema";

@@ -50,6 +50,8 @@ export interface DatabaseAdapter {
     userId: string,
   ): Promise<OrganizationMember | null>;
   listMembers(organizationId: string): Promise<OrganizationMember[]>;
+  /** All memberships for a user across orgs — used to resolve org context. */
+  listMembershipsForUser(userId: string): Promise<OrganizationMember[]>;
   updateMemberRole(
     organizationId: string,
     userId: string,

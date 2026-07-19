@@ -17,9 +17,14 @@ _Last updated: 2026-07-18_
   MongoDB adapters, `lib/db/index.ts` selector, multi-tenant schema (users,
   organizations, organization_members), `scripts/seed.ts`, docker-compose,
   data-layer + choosing-database docs. Test guardrail now implemented. ✅ Complete.
-- **Next:** Auth phase (from the main build sequence).
+- **Phase 3** — Auth core: `@/lib/auth` interface + Supabase Auth / custom
+  JWT+bcrypt adapters, email-password (+ reset), magic link, Google/GitHub OAuth
+  (all flag-gated), `components/auth/*` UI, `middleware.ts`, login/signup/
+  reset/dashboard pages, seed credentials, auth-setup docs. ✅ Complete.
+- **Next:** roles / super-admin (CLAUDE.md §14) and the admin panel.
 
-No product UI yet — Phase 2 is the data layer; no auth/payment logic.
+CLAUDE.md now has §14 Roles & Super Admin and §15 Pricing & Billing (former
+Response Style / Reference Docs renumbered to §16/§17). Neither is built yet.
 
 ## Stack / conventions in this fork
 
@@ -43,8 +48,12 @@ No product UI yet — Phase 2 is the data layer; no auth/payment logic.
   behind `DatabaseAdapter`; `DB_PROVIDER` picks one via `lib/db/index.ts`. No
   provider is actually configured in this fork (no DB env set). `SUPABASE_*` uses
   the service-role key; Mongo via `docker-compose.yml`.
-- **Auth / storage / email / phone / AI / payments:** flags exist but no logic;
-  folders scaffolded as empty placeholders.
+- **Auth:** implemented behind `@/lib/auth` (Phase 3) — email/password + reset,
+  magic link, Google/GitHub OAuth, all flag-gated; session + `middleware.ts`
+  route protection. No auth methods are enabled in this fork (no flags set).
+- **Storage / email / phone / AI / payments:** flags exist but no logic; folders
+  scaffolded as empty placeholders. (Mongo auth emails use a tiny inline Resend
+  fetch, not the future `lib/email` adapter.)
 
 ## Intentionally deferred
 
@@ -54,8 +63,11 @@ No product UI yet — Phase 2 is the data layer; no auth/payment logic.
 - Typed `AppError` boundary (§4/§8) — adapters throw descriptive `Error`s.
 - `scripts/seed-test.ts` body (reset + reseed the test DB) — still a stub;
   `pnpm seed` (plain seed) is implemented.
+- `lib/email` adapter — Mongo auth emails use a small inline Resend fetch for now.
+- Subdomain/path-based org routing in middleware (part of multiTenant UI).
+- Roles/super-admin (§14), pricing/billing (§15), admin panel, payments,
+  storage, phone, AI, cookie banner.
 - No theme→CSS codegen script yet (globals.css is hand-mirrored from theme.ts).
-- No auth/payments/storage/phone/AI features, no admin panel, no cookie banner.
 
 ## Known rough edges
 
@@ -63,6 +75,11 @@ No product UI yet — Phase 2 is the data layer; no auth/payment logic.
   `hsl(var(--x))` model, but this fork runs Tailwind v4. Theming was adapted to
   the v4 CSS-first approach — see `decisions.md` (2026-07-18).
 - `config/theme.ts` and `app/globals.css` must be kept in sync manually.
-- Importing `@/lib/db` constructs the adapter at module load, so any DB env
-  error surfaces at first import (e.g. running `pnpm seed` with no env). This is
-  intended (fail fast), but means DB env must be set before using `db`.
+- `db`/`auth` are lazy (constructed on first use). Env is still parsed at import
+  (fail-fast); use `SKIP_ENV_VALIDATION=1` for builds/CI without secrets.
+- **Auth is not runtime-verified end-to-end** here (no live DB/Supabase in this
+  environment). Verified: typecheck, lint, production build, provider selection,
+  env validation + guardrail, and the JWT+bcrypt primitives. The full HTTP
+  signup→login→session flow against a real DB should be smoke-tested on a fork.
+- `jose` emits a non-fatal Edge build warning (`DecompressionStream`); its JWE
+  path is bundled but never executed for HS256 — safe to ignore.

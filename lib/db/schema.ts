@@ -43,6 +43,12 @@ export const userSchema = z.object({
 export type User = z.infer<typeof userSchema>;
 
 export const newUserSchema = z.object({
+  /**
+   * Optional explicit id. Used by the Supabase auth adapter to make the profile
+   * row's id match the Supabase auth user's UID. Omitted for Mongo (the adapter
+   * generates an ObjectId).
+   */
+  id: z.string().optional(),
   email: z.email(),
   name: z.string().nullable().optional(),
 });

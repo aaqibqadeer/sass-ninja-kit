@@ -153,14 +153,19 @@ function requireUri(): string {
   return env.MONGODB_URI;
 }
 
-export class MongoAdapter implements DatabaseAdapter {
-  private connection: Promise<typeof mongoose> | null = null;
+/** Connect once, lazily; reuse the singleton connection thereafter. Exported so
+ * the auth adapter (which stores credentials in the same Mongo connection) can
+ * share it. */
+let connectionPromise: Promise<typeof mongoose> | null = null;
+export async function connectMongo(): Promise<void> {
+  if (mongoose.connection.readyState === 1) return;
+  connectionPromise ??= mongoose.connect(requireUri());
+  await connectionPromise;
+}
 
-  /** Connect once, lazily; reuse the connection thereafter. */
+export class MongoAdapter implements DatabaseAdapter {
   private async connect(): Promise<void> {
-    if (mongoose.connection.readyState === 1) return;
-    this.connection ??= mongoose.connect(requireUri());
-    await this.connection;
+    await connectMongo();
   }
 
   /* -- Users -------------------------------------------------------------- */
@@ -275,6 +280,14 @@ export class MongoAdapter implements DatabaseAdapter {
     return docs.map(toMember);
   }
 
+  async listMembershipsForUser(userId: string): Promise<OrganizationMember[]> {
+    await this.connect();
+    const docs = await OrganizationMemberModel.find({ user_id: userId })
+      .lean<OrganizationMemberDoc[]>()
+      .exec();
+    return docs.map(toMember);
+  }
+
   async updateMemberRole(
     organizationId: string,
     userId: string,
@@ -305,9 +318,9 @@ export class MongoAdapter implements DatabaseAdapter {
   }
 
   async disconnect(): Promise<void> {
-    if (this.connection) {
+    if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
-      this.connection = null;
+      connectionPromise = null;
     }
   }
 }

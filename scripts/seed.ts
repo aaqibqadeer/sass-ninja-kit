@@ -1,39 +1,50 @@
 /**
  * scripts/seed.ts — CORE (CLAUDE.md §2). Provider-aware baseline seed.
  *
- * Uses `db` from @/lib/db, so it seeds whichever provider `DB_PROVIDER` selects
- * — no provider-specific code here. Creates one test organization, one admin
- * user, and one regular user, and wires their memberships.
+ * Seeds whichever provider `DB_PROVIDER` selects. Creates two users WITH valid
+ * auth credentials (via the auth adapter, so email/password sign-in works
+ * locally), one test organization, and their memberships (admin + user).
  *
  * Per the "new table = three things" rule (§1.4), every model added in a later
  * phase adds its seed entry here in the same commit as its schema and adapter
  * method.
  *
- * Run with `pnpm seed` (or `npm run seed`). Users are looked up by email so the
- * user rows are idempotent; the organization is created fresh, so run this
- * against an empty database (or use the test-DB reset flow, deferred to
- * seed-test.ts). Requires a valid DB_PROVIDER + connection env (see .env.example).
+ * Run with `pnpm seed` (or `npm run seed`). Idempotent on users (looked up by
+ * email); the organization is created fresh, so run against an empty database.
+ * Requires valid DB + AUTH env (see .env.example).
  */
 
 import { env } from "@/config/env.schema";
-import { db, ORG_ROLES, type User } from "@/lib/db";
+import { auth } from "@/lib/auth";
+import { db, ORG_ROLES } from "@/lib/db";
 
-async function ensureUser(email: string, name: string): Promise<User> {
+/** Shared password for the seeded users — local testing only. */
+const SEED_PASSWORD = "Password123!";
+
+async function ensureUser(
+  email: string,
+  name: string,
+): Promise<{ id: string; email: string }> {
   const existing = await db.getUserByEmail(email);
   if (existing) return existing;
-  return db.createUser({ email, name });
+  const { user } = await auth.createCredentials({
+    email,
+    password: SEED_PASSWORD,
+    name,
+  });
+  return user;
 }
 
 async function main(): Promise<void> {
   console.log(`Seeding via the "${env.DB_PROVIDER}" adapter…`);
 
+  const admin = await ensureUser("admin@example.com", "Admin User");
+  const member = await ensureUser("user@example.com", "Regular User");
+
   const org = await db.createOrganization({
     name: "Test Organization",
     slug: "test-org",
   });
-
-  const admin = await ensureUser("admin@example.com", "Admin User");
-  const member = await ensureUser("user@example.com", "Regular User");
 
   await db.addMember({
     organizationId: org.id,
@@ -50,6 +61,7 @@ async function main(): Promise<void> {
   console.log(`  organization  ${org.id} (${org.slug})`);
   console.log(`  admin user    ${admin.id} (${admin.email})`);
   console.log(`  regular user  ${member.id} (${member.email})`);
+  console.log(`  password for both: ${SEED_PASSWORD}`);
 
   await db.disconnect?.();
 }

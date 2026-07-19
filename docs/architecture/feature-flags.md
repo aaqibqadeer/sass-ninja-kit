@@ -42,6 +42,10 @@ Notes:
   `config/features.ts`. An empty/absent list means AI is off.
 - `AUTH_SECRET` is required whenever **any** auth method is enabled
   (`isAnyAuthEnabled` in `config/features.ts`).
+- **Phase 3 (auth core) added no new flags** — it implements the existing
+  `auth.*` flags. It did add non-flag env vars: `NEXT_PUBLIC_APP_URL` (base URL
+  for OAuth redirects / email links) and `AUTH_EMAIL_FROM` (optional). See
+  `docs/guides/auth-setup.md`.
 
 ## Adding a flag (checklist, per CLAUDE.md §7)
 

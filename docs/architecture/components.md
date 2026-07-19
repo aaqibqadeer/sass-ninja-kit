@@ -34,3 +34,18 @@ _None yet._ The first candidates (per §9.2) are form fields, empty states, data
 tables, modals, confirmation dialogs, file uploads, avatars, badges, loading
 skeletons, pagination, and toasts — each built here the first time it's needed,
 with an entry added to this table in the same commit.
+
+## `/components/auth` — auth feature components (Phase 3)
+
+Feature-scoped (§9.4): reusable within auth. Each reads `config/features.ts` and
+renders only enabled methods, so they degrade gracefully when a flag is off.
+
+| Component           | Location                                | Purpose                                                              | Key Props | Used In                       |
+| ------------------- | --------------------------------------- | -------------------------------------------------------------------- | --------- | ----------------------------- |
+| `LoginForm`         | `components/auth/LoginForm.tsx`         | Sign-in card: password + magic-link + OAuth, per enabled flags.      | `next?`   | `app/login/page.tsx`          |
+| `SignupForm`        | `components/auth/SignupForm.tsx`        | Registration card: email/password + OAuth.                           | _(none)_  | `app/signup/page.tsx`         |
+| `ResetPasswordForm` | `components/auth/ResetPasswordForm.tsx` | Dual-mode: request a reset link, or set a new password with a token. | `token?`  | `app/reset-password/page.tsx` |
+| `MagicLinkForm`     | `components/auth/MagicLinkForm.tsx`     | Passwordless email link request.                                     | _(none)_  | `LoginForm`                   |
+| `OAuthButtons`      | `components/auth/OAuthButtons.tsx`      | One button per enabled OAuth provider.                               | `next?`   | `LoginForm`, `SignupForm`     |
+| `LogoutButton`      | `components/auth/LogoutButton.tsx`      | Clears the session and redirects to login.                           | _(none)_  | `app/dashboard/page.tsx`      |
+| `AuthDivider`       | `components/auth/AuthDivider.tsx`       | Labelled "or" separator between method groups.                       | `label?`  | `LoginForm`, `SignupForm`     |

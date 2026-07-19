@@ -81,3 +81,11 @@ three-entity multi-tenant schema, and `scripts/seed.ts`. The Supabase adapter
 uses the service-role key server-side; per-request user-scoped (RLS-enforcing)
 clients arrive with auth in a later phase. SQL migrations / RLS policy files for
 Supabase are **deferred** — see `docs/guides/choosing-database.md`.
+
+Extended in Phase 3 (auth): `NewUser` gained an optional `id` (so the Supabase
+auth uid can be the profile row id), and `listMembershipsForUser(userId)` was
+added to resolve a user's org context. `db` is now created lazily on first use
+(importing `@/lib/db` no longer requires a configured connection — useful for
+builds). Auth credentials live in the auth layer, not the db layer: the MongoDB
+flow stores bcrypt hashes in an `auth_credentials` collection; Supabase uses its
+own `auth.users`.

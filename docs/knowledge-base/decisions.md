@@ -4,6 +4,26 @@
 > entries, dated, **newest at the top**. Only decisions a future agent would
 > otherwise have to re-derive or might get wrong by guessing.
 
+## 2026-07-19 — Auth core: two backends behind one interface, Edge-safe middleware
+
+Auth follows the same interface+adapter shape as the db layer: `@/lib/auth`
+selects Supabase Auth (`@supabase/ssr`, session in Supabase cookies) or a custom
+JWT+bcrypt flow (MongoDB; session in an httpOnly cookie) from `DB_PROVIDER`.
+Because middleware runs on the Edge runtime and mongoose is Node-only, there are
+**two** provider selectors: `lib/auth/index.ts` (Node, full adapter) and
+`lib/auth/edge.ts` (Edge, session check only — `jose` verify for Mongo,
+`@supabase/ssr` for Supabase). Reset/magic-link tokens in the Mongo flow are
+**stateless** signed JWTs (no token tables); Supabase uses its own email +
+PKCE-code callbacks. Auth credentials live in the auth layer (Mongo:
+`auth_credentials` bcrypt hashes), not in the db `users` table, so both providers
+keep `users` as clean profile data. `db`/`auth` are now **lazy** (constructed on
+first use) so importing them doesn't require env — and `SKIP_ENV_VALIDATION`
+lets builds/CI run without secrets while runtime stays fail-fast. Deferred:
+per-request RLS-scoped Supabase clients, a typed `AppError`, subdomain/path org
+routing, and a full `lib/email` adapter (Mongo auth emails use a tiny Resend
+fetch for now). Known: `jose` triggers a non-fatal Edge "DecompressionStream"
+build warning (its JWE path is bundled but never run for HS256).
+
 ## 2026-07-18 — DB adapter layer: shared Zod models, service-role Supabase, guardrail live
 
 Both adapters map to one canonical set of Zod domain models in

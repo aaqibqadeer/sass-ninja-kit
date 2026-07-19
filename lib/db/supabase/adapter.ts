@@ -116,9 +116,14 @@ export class SupabaseAdapter implements DatabaseAdapter {
   /* -- Users -------------------------------------------------------------- */
 
   async createUser(input: NewUser): Promise<User> {
+    const row: Record<string, unknown> = {
+      email: input.email,
+      name: input.name ?? null,
+    };
+    if (input.id) row.id = input.id;
     const { data, error } = await this.client
       .from(TABLES.users)
-      .insert({ email: input.email, name: input.name ?? null })
+      .insert(row)
       .select()
       .single();
     if (error) throw new Error(`supabase createUser: ${error.message}`);
@@ -246,6 +251,16 @@ export class SupabaseAdapter implements DatabaseAdapter {
       .select()
       .eq("organization_id", organizationId);
     if (error) throw new Error(`supabase listMembers: ${error.message}`);
+    return (data as OrganizationMemberRow[]).map(toMember);
+  }
+
+  async listMembershipsForUser(userId: string): Promise<OrganizationMember[]> {
+    const { data, error } = await this.client
+      .from(TABLES.members)
+      .select()
+      .eq("user_id", userId);
+    if (error)
+      throw new Error(`supabase listMembershipsForUser: ${error.message}`);
     return (data as OrganizationMemberRow[]).map(toMember);
   }
 

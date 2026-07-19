@@ -13,14 +13,15 @@ Development is split into phases. Each phase lives on its own branch, cut from
 the previous phase's branch, so a later branch cumulatively contains all earlier
 work.
 
-| Branch                  | Contains                                                                                                                                             |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `phase-0-foundation`    | Project scaffold, shadcn/ui, folder structure, docs skeleton, CI-lite scripts.                                                                       |
-| `phase-0.5-foundations` | Everything above **+** linting/Prettier, theme skeleton, component catalog, knowledge base, test-env guardrail, full folder contract.                |
-| `phase-1-config-flags`  | Everything above **+** typed feature-flag registry, flag-aware env validation, full `.env.example`, feature-flags reference.                         |
-| `phase-2-db-adapter`    | Everything above **+** database adapter interface, Supabase + MongoDB adapters, provider selector, multi-tenant schema, seed script, docker-compose. |
+| Branch                  | Contains                                                                                                                                                                     |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `phase-0-foundation`    | Project scaffold, shadcn/ui, folder structure, docs skeleton, CI-lite scripts.                                                                                               |
+| `phase-0.5-foundations` | Everything above **+** linting/Prettier, theme skeleton, component catalog, knowledge base, test-env guardrail, full folder contract.                                        |
+| `phase-1-config-flags`  | Everything above **+** typed feature-flag registry, flag-aware env validation, full `.env.example`, feature-flags reference.                                                 |
+| `phase-2-db-adapter`    | Everything above **+** database adapter interface, Supabase + MongoDB adapters, provider selector, multi-tenant schema, seed script, docker-compose.                         |
+| `phase-3-auth-core`     | Everything above **+** auth interface (Supabase Auth / custom JWT+bcrypt), email-password + reset, magic link, Google/GitHub OAuth, auth UI, middleware, seeded credentials. |
 
-> You are on **`phase-2-db-adapter`**.
+> You are on **`phase-3-auth-core`**.
 
 ---
 
@@ -136,3 +137,31 @@ Run `pnpm seed` after configuring a provider (see
 
 Not yet included (deferred to later phases): auth, payments, storage, phone, AI
 providers, admin panel; Supabase SQL migrations / RLS policy files.
+
+---
+
+## Phase 3 — Auth Core (this branch)
+
+Authentication behind one provider-agnostic interface (`@/lib/auth`). Adds on
+top of Phase 2:
+
+- **`lib/auth/`** — `AuthAdapter` interface + two backends selected by
+  `DB_PROVIDER`: **Supabase Auth** (`@supabase/ssr`) or a custom **JWT + bcrypt**
+  flow (MongoDB). `getSession`/`signIn`/`signUp`/`signOut`, `requireAuth()`
+  server helper, and an Edge-safe session check for middleware.
+- **Methods, each independently flag-gated**: email/password (with password
+  reset), magic link, and Google/GitHub OAuth (only wired when a client id is
+  present).
+- **`components/auth/`** — `LoginForm`, `SignupForm`, `ResetPasswordForm`,
+  `MagicLinkForm`, `OAuthButtons`, `LogoutButton` — render only enabled methods.
+- **`middleware.ts`** — redirects unauthenticated users to `/login?next=…`.
+- **Pages** — `/login`, `/signup`, `/reset-password`, protected `/dashboard`.
+- **Seed** — seeded users get real credentials (`pnpm seed`, password
+  `Password123!`).
+- **Docs** — `docs/guides/auth-setup.md` (OAuth setup per provider).
+
+Builds/CI without secrets: `SKIP_ENV_VALIDATION=1 npm run build`. See
+`docs/guides/auth-setup.md` to enable methods.
+
+Not yet included (deferred): roles / super-admin, admin panel, payments, storage,
+phone, AI providers.
