@@ -57,9 +57,15 @@ CustomerId`); `organizations` gained `stripeCustomerId` + `trialEndsAt`;
   flag is an array), default model per provider in `lib/ai/models.ts`, optional
   `AI_DEFAULT_PROVIDER` env; example smoke-test route `app/api/ai/generate`;
   `ai-providers.md` guide. ✅ Complete.
-- **Next:** Phase 9 (SEO & legal) then Phase 10 (docs finalization). Remaining
-  template backlog: cookie banner (Phase 9), Supabase SQL migrations/RLS,
-  seed-test body, theme→CSS codegen.
+- **Phase 9** — SEO & legal: expanded Metadata API in `app/layout.tsx`
+  (`metadataBase`, title template, OpenGraph/Twitter, robots); `app/sitemap.ts` +
+  `app/robots.ts` (reuse `NEXT_PUBLIC_APP_URL`; both added to middleware public
+  paths); flag-gated `cookieBanner` + `components/shared/CookieBanner.tsx`
+  (client, first-party `ninjakit_cookie_consent` cookie); legal templates
+  (`docs/legal-templates/{privacy-policy,terms-of-service,cookie-policy}.md`) with
+  `[PLACEHOLDER]` fields + `docs/prompts/generate-legal-docs.md`. ✅ Complete.
+- **Next:** Phase 10 (docs finalization). Remaining template backlog: Supabase SQL
+  migrations/RLS, seed-test body, theme→CSS codegen.
 
 CLAUDE.md §14 Roles & Super Admin and §15 Pricing & Billing are now fully
 implemented — data layer, adapters, and the super-admin admin-panel UI (plan CRUD,
@@ -116,6 +122,11 @@ cross-org cancel/refund).
   `app/api/ai/generate` route (404 when off). `aiProviders` is an array flag; it's
   empty (OFF) in this fork — no provider keys set. `stream()` exists on the
   adapter but there's no shared HTTP SSE helper yet.
+- **SEO / cookie banner (Phase 9):** Metadata API expanded in `app/layout.tsx`
+  (not flag-gated); `app/sitemap.ts` + `app/robots.ts` render `/sitemap.xml` +
+  `/robots.txt` (both allow-listed in `middleware.ts`). `cookieBanner` is a flat
+  flag, OFF in this fork — `CookieBanner` renders null when off. Legal docs are
+  templates under `docs/legal-templates/`, not routed pages.
 
 ## Intentionally deferred
 

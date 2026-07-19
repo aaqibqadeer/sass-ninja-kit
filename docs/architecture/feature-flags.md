@@ -33,6 +33,7 @@ broken page.
 | `storage`                | `NEXT_PUBLIC_FEATURE_STORAGE`                 | File storage (S3 presigned URLs)                                                                                                                 | `STORAGE_PROVIDER`; when `=s3` also `AWS_S3_BUCKET`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (`AWS_S3_ENDPOINT` optional) |
 | `phoneVerification`      | `NEXT_PUBLIC_FEATURE_PHONE_VERIFICATION`      | SMS phone verification (Twilio Verify)                                                                                                           | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`                                                                       |
 | `admin`                  | `NEXT_PUBLIC_FEATURE_ADMIN`                   | Admin panel routes/UI                                                                                                                            | _(none)_                                                                                                                                     |
+| `cookieBanner`           | `NEXT_PUBLIC_FEATURE_COOKIE_BANNER`           | Cookie-consent banner (accept/reject, choice stored in a cookie)                                                                                 | _(none)_                                                                                                                                     |
 | `aiProviders`            | `NEXT_PUBLIC_FEATURE_AI_PROVIDERS`            | Enabled AI providers (comma-separated: `anthropic`, `openai`)                                                                                    | `ANTHROPIC_API_KEY` (if list includes `anthropic`), `OPENAI_API_KEY` (if list includes `openai`)                                             |
 | `multiTenant`            | `NEXT_PUBLIC_FEATURE_MULTI_TENANT`            | Org switching/invites UI. Off = one silent default org per user. Schema is always multi-tenant.                                                  | _(none required; email invites reuse `RESEND_API_KEY` if set, else log to console in dev)_                                                   |
 
@@ -78,6 +79,12 @@ Notes:
   (`anthropic`|`openai`), which picks the default provider when several are
   enabled; unset falls back to the first enabled provider. It unlocks no secret,
   so it has no required-when rule. See `docs/guides/ai-providers.md`.
+- **Phase 9 (SEO & legal) added one flag** — `cookieBanner` (flat boolean). It
+  gates the `CookieBanner` shared component (accept/reject → first-party
+  `ninjakit_cookie_consent` cookie, read client-side). It unlocks no secret, so
+  there's no `env.schema.ts` rule. Phase 9 also added SEO plumbing that is NOT
+  flag-gated: expanded Metadata API in `app/layout.tsx`, `app/sitemap.ts`, and
+  `app/robots.ts` (all reuse `NEXT_PUBLIC_APP_URL`).
 
 ## Adding a flag (checklist, per CLAUDE.md §7)
 

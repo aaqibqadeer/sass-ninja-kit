@@ -60,6 +60,8 @@ export interface Features {
   phoneVerification: boolean;
   /** Admin panel routes/UI. */
   admin: boolean;
+  /** Cookie-consent banner (accept/reject, choice stored in a cookie). */
+  cookieBanner: boolean;
   /** Enabled AI providers; empty array means AI is off. */
   aiProviders: AiProvider[];
   /**
@@ -97,6 +99,7 @@ export const features: Features = {
   storage: !!process.env.NEXT_PUBLIC_FEATURE_STORAGE,
   phoneVerification: !!process.env.NEXT_PUBLIC_FEATURE_PHONE_VERIFICATION,
   admin: !!process.env.NEXT_PUBLIC_FEATURE_ADMIN,
+  cookieBanner: !!process.env.NEXT_PUBLIC_FEATURE_COOKIE_BANNER,
   aiProviders: resolveAiProviders(),
   multiTenant: !!process.env.NEXT_PUBLIC_FEATURE_MULTI_TENANT,
 };

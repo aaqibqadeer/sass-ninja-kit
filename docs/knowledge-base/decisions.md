@@ -4,6 +4,28 @@
 > entries, dated, **newest at the top**. Only decisions a future agent would
 > otherwise have to re-derive or might get wrong by guessing.
 
+## 2026-07-19 — Phase 9: SEO metadata, sitemap/robots, cookie banner, legal templates
+
+SEO plumbing is **not flag-gated** (every fork wants it): the root `metadata`
+export gained `metadataBase`/title-template/OpenGraph/Twitter/robots, and
+`app/sitemap.ts` + `app/robots.ts` build absolute URLs from
+`NEXT_PUBLIC_APP_URL`. **Runtime check caught a real bug** — `middleware.ts`
+redirected `/robots.txt` and `/sitemap.xml` to `/login` (its matcher catches
+them and they weren't public), so both were added to `isPublicPath`. The cookie
+banner **is** flag-gated (`cookieBanner`, a flat boolean). Its consent cookie
+(`ninjakit_cookie_consent`) is deliberately **client-managed and non-httpOnly**
+(unlike the server-set auth/active-org cookies) because the banner must read it in
+the browser to decide whether to render — its constant lives in the component,
+not `lib/auth/constants.ts`, since it isn't an auth concern. The banner **starts
+hidden and reveals after mount** (via `useEffect`) to avoid an SSR hydration
+mismatch, and exposes `getCookieConsent()` so a fork can gate analytics on the
+choice. It takes an optional `policyHref` rather than hardcoding a `/cookie-policy`
+route that doesn't exist yet (no broken link). Legal docs ship as `[PLACEHOLDER]`
+**templates** (not routed pages) plus a `generate-legal-docs.md` prompt — the fork
+decides whether/how to route them. Verified end-to-end with a headless browser:
+banner shows → Accept sets cookie → stays hidden on reload; `/robots.txt` +
+`/sitemap.xml` render; metadata present in `<head>`.
+
 ## 2026-07-19 — Phase 8: AI integration (Anthropic + OpenAI behind one interface)
 
 Two providers landed behind the standard `@/lib/ai` seam — `AiAdapter` interface

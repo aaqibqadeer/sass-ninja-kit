@@ -41,9 +41,7 @@ const { text, model, provider } = await ai().generate({
 // Explicit provider + system prompt + multi-turn:
 const res = await ai("openai").generate({
   system: "You are a terse assistant.",
-  messages: [
-    { role: "user", content: "Name three primary colors." },
-  ],
+  messages: [{ role: "user", content: "Name three primary colors." }],
   maxTokens: 100,
   temperature: 0.3,
 });

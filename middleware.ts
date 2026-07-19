@@ -26,6 +26,8 @@ const PUBLIC_PATHS = [
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/") return true;
+  // SEO files must be crawlable without a session (Phase 9).
+  if (pathname === "/robots.txt" || pathname === "/sitemap.xml") return true;
   if (pathname.startsWith("/api/auth")) return true;
   // Stripe webhooks are authenticated by signature, not a session cookie — they
   // must bypass the login redirect (Phase 5).
