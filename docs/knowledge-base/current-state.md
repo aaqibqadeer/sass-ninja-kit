@@ -29,11 +29,20 @@ _Last updated: 2026-07-19_
   active-org switching (`lib/org/*`), API routes under `app/api/org/*`, the
   `WorkspaceSwitcher` + `components/org/*`, `/settings/organization` +
   `/invite/[token]` pages, `docs/guides/multi-tenancy.md`. ✅ Complete.
-- **Next:** admin panel + pricing/billing (CLAUDE.md §15), which builds on
-  `requireSuperAdmin()`.
+- **Phase 5** — Payments & pricing (data layer): nested `payments.{enabled,
+annualBilling}` flag; platform-level `plans` + `app_settings` tables and
+  org-scoped `subscriptions` (both adapters, seed, `getOrganizationByStripe
+CustomerId`); `organizations` gained `stripeCustomerId` + `trialEndsAt`;
+  provider-neutral `lib/payments` Stripe adapter (checkout/portal/cancel/refund/
+  createPrice/deactivatePrice/webhook) with Price-immutability + refund-amount
+  validation; `hasAccess()`, `resolveTrialEndsAt()` wired into org creation;
+  `app/api/payments/{checkout,portal,webhook}`; `payments-setup.md`. ✅ Complete.
+- **Next:** Phase 6 (storage/phone/email adapters) then Phase 7 (admin panel +
+  super-admin plan/subscription UIs, which consume Phase 5's adapter methods).
 
-CLAUDE.md §14 Roles & Super Admin is now implemented; §15 Pricing & Billing is
-not built yet.
+CLAUDE.md §14 Roles & Super Admin and §15 Pricing & Billing (data layer +
+adapter) are now implemented. The admin/super-admin **UI** for plan CRUD and
+cancel/refund is Phase 7 (not built yet).
 
 ## Stack / conventions in this fork
 
@@ -47,9 +56,10 @@ not built yet.
 ## Configured flags / providers
 
 - **Feature flags:** registry is fully typed in `config/features.ts` (auth
-  {emailPassword, magicLink, oauth.google, oauth.github}, payments, storage,
-  phoneVerification, admin, aiProviders[], multiTenant). All resolve OFF by
-  default — no `NEXT_PUBLIC_FEATURE_*` vars set in this fork yet.
+  {emailPassword, magicLink, oauth.google, oauth.github}, **payments {enabled,
+  annualBilling}** (nested as of Phase 5), storage, phoneVerification, admin,
+  aiProviders[], multiTenant). All resolve OFF by default — no
+  `NEXT_PUBLIC_FEATURE_*` vars set in this fork yet.
 - **Env validation:** `config/env.schema.ts` validates conditionally on flags
   AND on `DB_PROVIDER`; throws at boot naming each missing required var. Verified
   for no-env, provider-missing-secrets, provider selection, and guardrail cases.
@@ -65,9 +75,14 @@ not built yet.
   `lib/auth/roles.ts` guards; `multiTenant` now drives real UI (switcher, org
   creation, email invites, member management) — all `404`/hidden when off.
   Invites reuse `sendAuthEmail`. `multiTenant` is OFF in this fork.
-- **Storage / email / phone / AI / payments:** flags exist but no logic; folders
-  scaffolded as empty placeholders. (Auth + invite emails use a tiny inline
-  Resend fetch, not the future `lib/email` adapter.)
+- **Payments (Phase 5):** implemented behind `@/lib/payments` (Stripe adapter) —
+  checkout/portal/cancel/refund/createPrice/webhook, `hasAccess()`, trials. Data
+  layer (`plans`, `app_settings`, `subscriptions`, org billing columns) in both DB
+  adapters + seed. `payments` flag is OFF in this fork; no Stripe keys set. Admin
+  UI that drives plan CRUD / cancel / refund is Phase 7.
+- **Storage / email / phone / AI:** flags exist but no logic; folders scaffolded
+  as empty placeholders (Phase 6 builds storage/phone/email). Auth + invite emails
+  still use a tiny inline Resend fetch, not the future `lib/email` adapter.
 
 ## Intentionally deferred
 
@@ -84,7 +99,11 @@ not built yet.
 - SQL migration for the Supabase `is_super_admin` column and the
   `organization_invitations` table (documented in `data-layer.md`; no migration
   files are generated in this fork).
-- Pricing/billing (§15), admin panel, payments, storage, phone, AI, cookie banner.
+- Admin panel + super-admin plan CRUD / cross-org subscription cancel+refund UI
+  (Phase 7); storage, phone, email adapters (Phase 6); AI, cookie banner.
+- Supabase SQL for Phase 5 tables (`plans`, `app_settings`, `subscriptions`) and
+  the new `organizations.stripe_customer_id` / `trial_ends_at` columns — documented
+  in `data-layer.md`, no migration files generated in this fork.
 - No theme→CSS codegen script yet (globals.css is hand-mirrored from theme.ts).
 
 ## Known rough edges

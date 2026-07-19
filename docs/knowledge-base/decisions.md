@@ -4,6 +4,30 @@
 > entries, dated, **newest at the top**. Only decisions a future agent would
 > otherwise have to re-derive or might get wrong by guessing.
 
+## 2026-07-19 — Phase 5: payments data layer, org-scoped billing, nested payments flag
+
+Billing is **organization-scoped** (user's call over user-scoped): `subscriptions`
+carry `organization_id`, and `stripe_customer_id` + `trial_ends_at` live on the
+`organizations` row — works identically single-/multi-tenant since every user has a
+silent default org. The `payments` flag was **promoted from a bare boolean to
+`{ enabled, annualBilling }`** (mirroring `auth.oauth.*`); all `features.payments`
+reads became `features.payments.enabled`. `plans` and `app_settings` are the two
+**platform-level (non-tenant) tables** — the deliberate §15 exception; `plans`
+prices are integer **cents**. Payments follows the db pattern: `@/lib/payments`
+selects one provider (Stripe today) behind a **provider-neutral `PaymentsAdapter`**;
+the webhook is normalised into a small union so **no Stripe type leaks past the
+seam** (the route just persists it). **Stripe Price immutability** is honored in the
+adapter — a price change creates a new Price + archives the old + relinks the plan,
+never a mutate. `refundSubscription(chargeId, amount?)` validates `amount ≤ charge
+total` at runtime (fetches the charge) and rejects over-/non-positive refunds.
+`hasAccess(session, feature)` is the **single** feature-gate — returns `true` when
+payments is off, else reads the active plan's `limits` JSON, so nothing else
+branches on the flag. The webhook route is **public in middleware** (signature-auth,
+not cookie). Deferred to Phase 7 (per spec): all admin/super-admin billing UI —
+this phase is data + adapters only. Not runtime-verified against live Stripe/DB
+(none here): typecheck + lint + prod build pass, plus unit checks for the refund
+guard, flag shape, and env validation.
+
 ## 2026-07-19 — Phase 4: roles/permissions, super-admin scaffold, cookie-based active org
 
 Authorization has **two tiers that never collapse** (§14): org roles via

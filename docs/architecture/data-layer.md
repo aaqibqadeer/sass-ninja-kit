@@ -34,12 +34,18 @@ schema and a seed entry, in the same commit (§1.4).
 
 ## Multi-tenant schema
 
-| Entity             | Table / collection         | Tenant-scoped?                  | Notes                                                                                                      |
-| ------------------ | -------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| User               | `users`                    | No (global identity)            | `id`, `email` (unique), `name?`, **`is_super_admin`** (platform-level, §14), timestamps                    |
-| Organization       | `organizations`            | Is the tenant boundary          | `id`, `name`, `slug` (unique), timestamps                                                                  |
-| OrganizationMember | `organization_members`     | Yes — carries `organization_id` | `organization_id` + `user_id` (unique together, both indexed), `role`                                      |
-| Invitation         | `organization_invitations` | Yes — carries `organization_id` | `email`, `role`, `token` (unique), `status` (pending/accepted/revoked), `invited_by_user_id`, `expires_at` |
+| Entity             | Table / collection         | Tenant-scoped?                  | Notes                                                                                                                                                                           |
+| ------------------ | -------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| User               | `users`                    | No (global identity)            | `id`, `email` (unique), `name?`, **`is_super_admin`** (platform-level, §14), timestamps                                                                                         |
+| Organization       | `organizations`            | Is the tenant boundary          | `id`, `name`, `slug` (unique), timestamps                                                                                                                                       |
+| OrganizationMember | `organization_members`     | Yes — carries `organization_id` | `organization_id` + `user_id` (unique together, both indexed), `role`                                                                                                           |
+| Invitation         | `organization_invitations` | Yes — carries `organization_id` | `email`, `role`, `token` (unique), `status` (pending/accepted/revoked), `invited_by_user_id`, `expires_at`                                                                      |
+| Plan               | `plans`                    | **No — PLATFORM-level (§15)**   | `name`, `description?`, `price_monthly`, `price_annual?`, `annual_discount_percent?`, `limits` (JSON), `is_active`, `sort_order`, `stripe_*` ids. Prices are integer **cents**. |
+| AppSettings        | `app_settings`             | No — PLATFORM-level singleton   | One row. `trial_days` (used to compute an org's `trial_ends_at` at creation)                                                                                                    |
+| Subscription       | `subscriptions`            | Yes — carries `organization_id` | `plan_id`, `status`, `stripe_customer_id?`, `stripe_subscription_id?`, `current_period_end?`, `cancel_at_period_end`                                                            |
+
+`organizations` also gained `stripe_customer_id?` + `trial_ends_at?` in Phase 5
+(the org is the billing entity; subscriptions are org-scoped).
 
 `role` is an extensible free string; `admin` and `user` are the built-ins
 (`ORG_ROLES` in `lib/db/schema.ts`). What each role may do is defined in
@@ -100,3 +106,33 @@ added to resolve a user's org context. `db` is now created lazily on first use
 builds). Auth credentials live in the auth layer, not the db layer: the MongoDB
 flow stores bcrypt hashes in an `auth_credentials` collection; Supabase uses its
 own `auth.users`.
+
+## Phase 5 — payments & pricing tables
+
+The interface gained `plans` CRUD, `app_settings` (`getAppSettings` /
+`updateAppSettings`), `subscriptions` CRUD, and
+`getOrganizationByStripeCustomerId` (for the webhook). Notes specific to this
+phase:
+
+- **`plans` is the one platform-level (non-tenant) table** — the sole, deliberate
+  exception to "every table is tenant-scoped" (§1.3 / §15). It has **no**
+  `organization_id`. `app_settings` is likewise platform-level (a singleton row).
+  `subscriptions` **are** tenant-scoped (`organization_id`) — the org is the
+  billing entity.
+- **Stripe Price immutability (§15).** A Stripe Price cannot be edited in place.
+  When a super admin changes a plan's price, the payments adapter
+  (`lib/payments/`) creates a **new** Stripe Price, archives the old one
+  (`deactivatePrice`), and relinks the plan's `stripe_price_id_*`. Existing
+  subscribers keep their original price unless explicitly migrated — **never** try
+  to mutate a Price. See `docs/guides/payments-setup.md`.
+- **Trials.** `resolveTrialEndsAt()` (`lib/payments/trials.ts`) reads
+  `app_settings.trial_days` and is called at org creation
+  (`ensureDefaultOrganization`, `createOrganizationForUser`) to stamp
+  `organizations.trial_ends_at`. Returns null when payments is off.
+- **Supabase columns to add** (no migration files are generated in this fork):
+  `organizations.stripe_customer_id text`, `organizations.trial_ends_at
+timestamptz`; the `plans`, `app_settings`, and `subscriptions` tables (snake_case
+  columns matching the Row shapes in `lib/db/supabase/adapter.ts`).
+- **Feature-gating.** `hasAccess(session, feature)` (`lib/payments/access.ts`) is
+  the single entry point — it reads the active plan's `limits` JSON and returns
+  `true` whenever payments is off, so no other code branches on the payments flag.

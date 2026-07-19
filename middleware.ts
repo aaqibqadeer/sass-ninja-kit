@@ -27,6 +27,9 @@ const PUBLIC_PATHS = [
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/") return true;
   if (pathname.startsWith("/api/auth")) return true;
+  // Stripe webhooks are authenticated by signature, not a session cookie — they
+  // must bypass the login redirect (Phase 5).
+  if (pathname === "/api/payments/webhook") return true;
   return PUBLIC_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );

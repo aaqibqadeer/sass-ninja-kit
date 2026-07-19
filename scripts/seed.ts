@@ -81,6 +81,47 @@ async function main(): Promise<void> {
     expiresAt: new Date(Date.now() + INVITE_TTL_MS),
   });
 
+  // Platform pricing plans (§15). Placeholders only — count and names are just
+  // data (super admin edits them in the admin panel); nothing in app logic
+  // hardcodes them. Prices are integer minor units (cents). Seeded only when no
+  // plans exist yet, so re-runs don't duplicate them.
+  const existingPlans = await db.listPlans();
+  if (existingPlans.length === 0) {
+    await db.createPlan({
+      name: "Starter",
+      description: "For trying things out.",
+      priceMonthly: 0,
+      priceAnnual: 0,
+      annualDiscountPercent: null,
+      limits: { seats: 1, projects: 1, apiAccess: false },
+      isActive: true,
+      sortOrder: 0,
+    });
+    await db.createPlan({
+      name: "Pro",
+      description: "For growing teams.",
+      priceMonthly: 2900,
+      priceAnnual: 29000,
+      annualDiscountPercent: 17,
+      limits: { seats: 5, projects: 10, apiAccess: true },
+      isActive: true,
+      sortOrder: 1,
+    });
+    await db.createPlan({
+      name: "Enterprise",
+      description: "For organizations at scale.",
+      priceMonthly: 9900,
+      priceAnnual: 99000,
+      annualDiscountPercent: 17,
+      limits: { seats: -1, projects: -1, apiAccess: true, sso: true },
+      isActive: true,
+      sortOrder: 2,
+    });
+  }
+
+  // Ensure the platform settings singleton exists (default trialDays).
+  const settings = await db.getAppSettings();
+
   console.log("Seed complete:");
   console.log(`  organization  ${org.id} (${org.slug})`);
   console.log(`  admin user    ${admin.id} (${admin.email})`);
@@ -98,6 +139,11 @@ async function main(): Promise<void> {
   console.log(
     `  invitation    ${invite.email} → ${invite.status} (${org.slug})`,
   );
+  const plans = await db.listPlans();
+  console.log(
+    `  plans         ${plans.map((p) => p.name).join(", ") || "none"}`,
+  );
+  console.log(`  app settings  trialDays=${settings.trialDays}`);
   console.log(`  password for both: ${SEED_PASSWORD}`);
 
   await db.disconnect?.();

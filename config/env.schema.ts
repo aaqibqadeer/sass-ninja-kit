@@ -157,19 +157,19 @@ function requirementRules(value: BaseEnv): RequirementRule[] {
       reason: "auth.magicLink is on (email delivery)",
     },
 
-    // Payments
+    // Payments (annualBilling is a UI/data cadence flag — unlocks no new secret)
     {
-      when: features.payments,
+      when: features.payments.enabled,
       key: "STRIPE_SECRET_KEY",
       reason: "payments is on",
     },
     {
-      when: features.payments,
+      when: features.payments.enabled,
       key: "STRIPE_WEBHOOK_SECRET",
       reason: "payments is on",
     },
     {
-      when: features.payments,
+      when: features.payments.enabled,
       key: "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
       reason: "payments is on",
     },

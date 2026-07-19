@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 
 import { db } from "@/lib/db";
 import { ORG_ROLES } from "@/lib/db/schema";
+import { resolveTrialEndsAt } from "@/lib/payments/trials";
 
 import { ACTIVE_ORG_COOKIE } from "./constants";
 import type { AuthUser } from "./types";
@@ -66,6 +67,7 @@ export async function ensureDefaultOrganization(
   const org = await db.createOrganization({
     name: `${handle}'s Organization`,
     slug: `org-${user.id}`,
+    trialEndsAt: await resolveTrialEndsAt(),
   });
   await db.addMember({
     organizationId: org.id,

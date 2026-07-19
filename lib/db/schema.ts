@@ -78,6 +78,14 @@ export const organizationSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
   slug: z.string().min(1),
+  /**
+   * Billing linkage (Phase 5). The org is the billing entity — subscriptions are
+   * org-scoped and `stripeCustomerId` ties this org to its Stripe customer.
+   * `trialEndsAt` is computed at org creation from `app_settings.trialDays`.
+   * Both are null until payments is configured/used.
+   */
+  stripeCustomerId: z.string().nullable().optional(),
+  trialEndsAt: z.coerce.date().nullable().optional(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });
@@ -86,10 +94,17 @@ export type Organization = z.infer<typeof organizationSchema>;
 export const newOrganizationSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
+  /** Set at creation from `app_settings.trialDays` (null when payments is off). */
+  trialEndsAt: z.coerce.date().nullable().optional(),
 });
 export type NewOrganization = z.infer<typeof newOrganizationSchema>;
 
-export const updateOrganizationSchema = newOrganizationSchema.partial();
+export const updateOrganizationSchema = z.object({
+  name: z.string().min(1).optional(),
+  slug: z.string().min(1).optional(),
+  stripeCustomerId: z.string().nullable().optional(),
+  trialEndsAt: z.coerce.date().nullable().optional(),
+});
 export type UpdateOrganization = z.infer<typeof updateOrganizationSchema>;
 
 /* -------------------------------------------------------------------------- */
@@ -163,3 +178,142 @@ export const newInvitationSchema = z.object({
   expiresAt: z.coerce.date(),
 });
 export type NewInvitation = z.infer<typeof newInvitationSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* Plan (PLATFORM-LEVEL — the one intentional non-tenant table, §15/§1.3)     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Pricing plans belong to the PLATFORM, not to any tenant — so `plans` has NO
+ * `organization_id`. This is the sole, deliberate exception to the
+ * multi-tenant-by-default rule (§1.3), called out in CLAUDE.md §15.
+ *
+ * Monetary amounts are integer MINOR units (cents), matching Stripe's
+ * `unit_amount`. `priceAnnual`/`annualDiscountPercent` are only meaningful when
+ * `features.payments.annualBilling` is on; they stay null otherwise (no schema
+ * change to toggle — §15). `limits` is the JSON entitlements blob read by
+ * `hasAccess()`. The `stripe*` ids are managed by the payments adapter; because
+ * Stripe Prices are immutable, a price change creates a NEW Price and relinks
+ * these ids (never mutates one in place — §15).
+ */
+export const planSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  description: z.string().nullable().optional(),
+  priceMonthly: z.number().int().nonnegative(),
+  priceAnnual: z.number().int().nonnegative().nullable().optional(),
+  annualDiscountPercent: z.number().min(0).max(100).nullable().optional(),
+  /** Entitlements/quotas JSON, read by `hasAccess()` (§15). */
+  limits: z.record(z.string(), z.unknown()).default({}),
+  isActive: z.boolean().default(true),
+  sortOrder: z.number().int().default(0),
+  stripeProductId: z.string().nullable().optional(),
+  stripePriceIdMonthly: z.string().nullable().optional(),
+  stripePriceIdAnnual: z.string().nullable().optional(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+export type Plan = z.infer<typeof planSchema>;
+
+export const newPlanSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().nullable().optional(),
+  priceMonthly: z.number().int().nonnegative(),
+  priceAnnual: z.number().int().nonnegative().nullable().optional(),
+  annualDiscountPercent: z.number().min(0).max(100).nullable().optional(),
+  limits: z.record(z.string(), z.unknown()).default({}),
+  isActive: z.boolean().default(true),
+  sortOrder: z.number().int().default(0),
+  stripeProductId: z.string().nullable().optional(),
+  stripePriceIdMonthly: z.string().nullable().optional(),
+  stripePriceIdAnnual: z.string().nullable().optional(),
+});
+export type NewPlan = z.infer<typeof newPlanSchema>;
+
+export const updatePlanSchema = newPlanSchema.partial();
+export type UpdatePlan = z.infer<typeof updatePlanSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* AppSettings (PLATFORM-LEVEL singleton — admin-editable platform config)     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Platform-wide, admin-editable settings — a single row. Currently just
+ * `trialDays` (used to compute an org's `trialEndsAt` at creation). No
+ * `organization_id`: like `plans`, this is a platform concern, not per-tenant.
+ */
+export const DEFAULT_TRIAL_DAYS = 14;
+
+export const appSettingsSchema = z.object({
+  id: z.string(),
+  trialDays: z.number().int().nonnegative().default(DEFAULT_TRIAL_DAYS),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+export type AppSettings = z.infer<typeof appSettingsSchema>;
+
+export const updateAppSettingsSchema = z.object({
+  trialDays: z.number().int().nonnegative().optional(),
+});
+export type UpdateAppSettings = z.infer<typeof updateAppSettingsSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* Subscription (tenant-scoped: carries organization_id)                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * An org's billing subscription. Org-scoped (the org is the billing entity).
+ * `status` mirrors the payment provider's subscription state and is kept in sync
+ * by the Stripe webhook handler. `planId` links to a platform `plans` row.
+ */
+export const SUBSCRIPTION_STATUSES = {
+  trialing: "trialing",
+  active: "active",
+  past_due: "past_due",
+  canceled: "canceled",
+  incomplete: "incomplete",
+} as const;
+export type SubscriptionStatus =
+  (typeof SUBSCRIPTION_STATUSES)[keyof typeof SUBSCRIPTION_STATUSES];
+export const subscriptionStatusSchema = z.enum([
+  SUBSCRIPTION_STATUSES.trialing,
+  SUBSCRIPTION_STATUSES.active,
+  SUBSCRIPTION_STATUSES.past_due,
+  SUBSCRIPTION_STATUSES.canceled,
+  SUBSCRIPTION_STATUSES.incomplete,
+]);
+
+export const subscriptionSchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  planId: z.string(),
+  status: subscriptionStatusSchema,
+  stripeCustomerId: z.string().nullable().optional(),
+  stripeSubscriptionId: z.string().nullable().optional(),
+  currentPeriodEnd: z.coerce.date().nullable().optional(),
+  cancelAtPeriodEnd: z.boolean().default(false),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+export type Subscription = z.infer<typeof subscriptionSchema>;
+
+export const newSubscriptionSchema = z.object({
+  organizationId: z.string(),
+  planId: z.string(),
+  status: subscriptionStatusSchema.default(SUBSCRIPTION_STATUSES.trialing),
+  stripeCustomerId: z.string().nullable().optional(),
+  stripeSubscriptionId: z.string().nullable().optional(),
+  currentPeriodEnd: z.coerce.date().nullable().optional(),
+  cancelAtPeriodEnd: z.boolean().default(false),
+});
+export type NewSubscription = z.infer<typeof newSubscriptionSchema>;
+
+export const updateSubscriptionSchema = z.object({
+  planId: z.string().optional(),
+  status: subscriptionStatusSchema.optional(),
+  stripeCustomerId: z.string().nullable().optional(),
+  stripeSubscriptionId: z.string().nullable().optional(),
+  currentPeriodEnd: z.coerce.date().nullable().optional(),
+  cancelAtPeriodEnd: z.boolean().optional(),
+});
+export type UpdateSubscription = z.infer<typeof updateSubscriptionSchema>;

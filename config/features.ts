@@ -39,10 +39,21 @@ export interface AuthFeatureFlags {
   };
 }
 
+export interface PaymentsFeatureFlags {
+  /** Master switch — Stripe checkout/portal/webhook + billing UI. */
+  enabled: boolean;
+  /**
+   * Annual billing cadence. When on, plans may set `priceAnnual` +
+   * `annualDiscountPercent` and the UI offers a monthly/annual toggle; when off,
+   * only `priceMonthly` is used. Toggling requires no schema change (§15).
+   */
+  annualBilling: boolean;
+}
+
 export interface Features {
   auth: AuthFeatureFlags;
   /** Subscription / one-off billing (Stripe). */
-  payments: boolean;
+  payments: PaymentsFeatureFlags;
   /** File storage. */
   storage: boolean;
   /** SMS phone-number verification (Twilio Verify). */
@@ -79,7 +90,10 @@ export const features: Features = {
       github: !!process.env.NEXT_PUBLIC_FEATURE_AUTH_OAUTH_GITHUB,
     },
   },
-  payments: !!process.env.NEXT_PUBLIC_FEATURE_PAYMENTS,
+  payments: {
+    enabled: !!process.env.NEXT_PUBLIC_FEATURE_PAYMENTS,
+    annualBilling: !!process.env.NEXT_PUBLIC_FEATURE_PAYMENTS_ANNUAL_BILLING,
+  },
   storage: !!process.env.NEXT_PUBLIC_FEATURE_STORAGE,
   phoneVerification: !!process.env.NEXT_PUBLIC_FEATURE_PHONE_VERIFICATION,
   admin: !!process.env.NEXT_PUBLIC_FEATURE_ADMIN,

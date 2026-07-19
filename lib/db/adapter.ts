@@ -15,16 +15,24 @@
  */
 
 import type {
+  AppSettings,
   Invitation,
   InvitationStatus,
   NewInvitation,
   NewOrganization,
   NewOrganizationMember,
+  NewPlan,
+  NewSubscription,
   NewUser,
   Organization,
   OrganizationMember,
   OrgRole,
+  Plan,
+  Subscription,
+  UpdateAppSettings,
   UpdateOrganization,
+  UpdatePlan,
+  UpdateSubscription,
   UpdateUser,
   User,
 } from "./schema";
@@ -75,6 +83,41 @@ export interface DatabaseAdapter {
     organizationId: string,
     email: string,
   ): Promise<Invitation | null>;
+
+  /* -- Organization billing lookup (Phase 5) ------------------------------ */
+  /** Find the org linked to a Stripe customer id — used by the webhook. */
+  getOrganizationByStripeCustomerId(
+    stripeCustomerId: string,
+  ): Promise<Organization | null>;
+
+  /* -- Plans (PLATFORM-LEVEL — no organizationId, §15) -------------------- */
+  createPlan(input: NewPlan): Promise<Plan>;
+  getPlanById(id: string): Promise<Plan | null>;
+  /** All plans (admin view), ordered by sortOrder. */
+  listPlans(): Promise<Plan[]>;
+  /** Active plans only (public pricing view), ordered by sortOrder. */
+  listActivePlans(): Promise<Plan[]>;
+  updatePlan(id: string, patch: UpdatePlan): Promise<Plan>;
+  deletePlan(id: string): Promise<void>;
+
+  /* -- App settings (PLATFORM-LEVEL singleton) ---------------------------- */
+  /** Read the singleton settings row, creating it with defaults if missing. */
+  getAppSettings(): Promise<AppSettings>;
+  updateAppSettings(patch: UpdateAppSettings): Promise<AppSettings>;
+
+  /* -- Subscriptions (tenant-scoped by organizationId) -------------------- */
+  createSubscription(input: NewSubscription): Promise<Subscription>;
+  getSubscriptionByOrg(organizationId: string): Promise<Subscription | null>;
+  /** Look up by the provider subscription id — used by the webhook. */
+  getSubscriptionByStripeId(
+    stripeSubscriptionId: string,
+  ): Promise<Subscription | null>;
+  /** All subscriptions across every org (super-admin cross-org view, §15). */
+  listSubscriptions(): Promise<Subscription[]>;
+  updateSubscription(
+    id: string,
+    patch: UpdateSubscription,
+  ): Promise<Subscription>;
 
   /* -- Lifecycle ---------------------------------------------------------- */
   /** Close underlying connections (used by scripts like seed). Optional. */

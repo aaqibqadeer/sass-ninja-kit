@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 
 import { db } from "@/lib/db";
 import { ORG_ROLES, type Organization } from "@/lib/db/schema";
+import { resolveTrialEndsAt } from "@/lib/payments/trials";
 import type { AuthUser } from "@/lib/auth/types";
 
 /** Turn a display name into a URL-safe slug fragment. */
@@ -32,7 +33,11 @@ export async function createOrganizationForUser(
   name: string,
 ): Promise<Organization> {
   const slug = `${slugify(name)}-${randomUUID().slice(0, 6)}`;
-  const org = await db.createOrganization({ name: name.trim(), slug });
+  const org = await db.createOrganization({
+    name: name.trim(),
+    slug,
+    trialEndsAt: await resolveTrialEndsAt(),
+  });
   await db.addMember({
     organizationId: org.id,
     userId: user.id,
