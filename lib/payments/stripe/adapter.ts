@@ -181,6 +181,22 @@ export class StripeAdapter implements PaymentsAdapter {
     await this.stripe.prices.update(priceId, { active: false });
   }
 
+  async getLatestCharge(
+    customerId: string,
+  ): Promise<{ chargeId: string; amount: number; currency: string } | null> {
+    const charges = await this.stripe.charges.list({
+      customer: customerId,
+      limit: 1,
+    });
+    const charge = charges.data[0];
+    if (!charge) return null;
+    return {
+      chargeId: charge.id,
+      amount: charge.amount,
+      currency: charge.currency,
+    };
+  }
+
   async parseWebhookEvent(
     rawBody: string,
     signature: string,

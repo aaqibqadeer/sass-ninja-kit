@@ -99,6 +99,14 @@ export interface PaymentsAdapter {
   /** Archive a Price (used when superseding it with a new one). */
   deactivatePrice(priceId: string): Promise<void>;
 
+  /**
+   * The most recent charge for a customer, used to pre-fill (and bound) a refund
+   * amount in the admin UI. `amount` is integer minor units. Null when none.
+   */
+  getLatestCharge(
+    customerId: string,
+  ): Promise<{ chargeId: string; amount: number; currency: string } | null>;
+
   /** Verify a webhook signature and normalise the event. */
   parseWebhookEvent(
     rawBody: string,

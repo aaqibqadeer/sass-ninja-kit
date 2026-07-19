@@ -43,12 +43,21 @@ CustomerId`); `organizations` gained `stripeCustomerId` + `trialEndsAt`;
   repointed reset/magic-link/invite call sites); `app/api/storage/upload-url`,
   `app/api/phone/{start,check}`; S3 env vars + rules; `storage-phone-email.md`.
   ✅ Complete.
-- **Next:** Phase 7 (admin panel + super-admin plan CRUD / cross-org subscription
-  cancel+refund UIs, which consume Phase 5's adapter methods).
+- **Phase 7** — Admin panel: `/admin` route group (org-admin OR super-admin entry,
+  per-page tier guards), Overview/Users/Organizations (org-admin) +
+  Plans/Subscriptions/Settings (super-admin); plan CRUD (`PlanManager` +
+  `PlanFormDialog`, price change → new Stripe Price via `syncStripePrices`);
+  cross-org subscriptions with cancel + refund (`SubscriptionsTable`, `ConfirmDialog`,
+  `payments.getLatestCharge`); trialDays editor. New primitives (Badge/Table/Switch/
+  sonner `Toaster`) + shared `ConfirmDialog`/`DataTable`/`EmptyState`. Admin API
+  routes under `app/api/admin/*`. ✅ Complete.
+- **Next:** all three assigned phases (5–7) are complete. Remaining template
+  backlog: AI providers, cookie banner, Supabase SQL migrations/RLS, seed-test body,
+  theme→CSS codegen.
 
-CLAUDE.md §14 Roles & Super Admin and §15 Pricing & Billing (data layer +
-adapter) are now implemented. The admin/super-admin **UI** for plan CRUD and
-cancel/refund is Phase 7 (not built yet).
+CLAUDE.md §14 Roles & Super Admin and §15 Pricing & Billing are now fully
+implemented — data layer, adapters, and the super-admin admin-panel UI (plan CRUD,
+cross-org cancel/refund).
 
 ## Stack / conventions in this fork
 
@@ -92,6 +101,10 @@ cancel/refund is Phase 7 (not built yet).
   Twilio creds). Email is not flag-gated — auth + invites now call `sendEmail`
   (Resend if `RESEND_API_KEY` set, else console in dev); `lib/auth/email.ts` was
   deleted. `FileUpload` / `PhoneVerify` shared components render null when off.
+- **Admin panel (Phase 7):** implemented behind the `admin` flag (`/admin/*`,
+  404 when off). Org-admin tabs + super-admin plan CRUD / cross-org subscriptions /
+  trialDays. Uses sonner toasts (mounted in root layout). `admin` flag is OFF in
+  this fork.
 - **AI:** flag exists but no logic; folder is an empty placeholder.
 
 ## Intentionally deferred
@@ -109,8 +122,7 @@ cancel/refund is Phase 7 (not built yet).
 - SQL migration for the Supabase `is_super_admin` column and the
   `organization_invitations` table (documented in `data-layer.md`; no migration
   files are generated in this fork).
-- Admin panel + super-admin plan CRUD / cross-org subscription cancel+refund UI
-  (Phase 7); storage, phone, email adapters (Phase 6); AI, cookie banner.
+- AI providers, cookie banner (still unbuilt template features).
 - Supabase SQL for Phase 5 tables (`plans`, `app_settings`, `subscriptions`) and
   the new `organizations.stripe_customer_id` / `trial_ends_at` columns — documented
   in `data-layer.md`, no migration files generated in this fork.

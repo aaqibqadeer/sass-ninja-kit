@@ -4,6 +4,31 @@
 > entries, dated, **newest at the top**. Only decisions a future agent would
 > otherwise have to re-derive or might get wrong by guessing.
 
+## 2026-07-19 — Phase 7: admin panel, two-tier guards, sonner toasts
+
+The `/admin` route group is entered by an **org admin OR a super-admin** (layout
+gate), then each page enforces its own tier: org-admin tabs (`users`,
+`organizations`) via `requireRole('admin')`, super-admin tabs (`plans`,
+`subscriptions`, `settings`) via `requireSuperAdmin()` — never collapsed (§14). The
+OR-entry matters because a super-admin who isn't an org admin must still reach the
+platform pages. **`trialDays` was placed under super-admin** (not org-admin as the
+raw spec listed) because it's a platform-wide `app_setting` (§14) — the user
+confirmed this. `/admin/users` **reuses** the existing `MemberList` + `/api/org/
+members/*` routes (no parallel admin routes); it's coherent in single-tenant since
+the only member is the locked self-row. Plan CRUD price changes route through
+`syncStripePrices` (`lib/payments/plans.ts`) honoring **Price immutability** (new
+Price + archive old), and no-op when payments is off so plan rows still save.
+Refund UI pre-fills the amount from a new `payments.getLatestCharge(customerId)`
+(a small Phase-5-adapter extension) and posts to `refundSubscription`, which
+re-validates `amount ≤ charge total`. Per the user's §8 sign-off we added
+**sonner** for toasts (mounted once in the root layout) — the one new UI feedback
+pattern. New primitives (`Badge`, `Table`, `Switch`, `Toaster`) were hand-authored
+to avoid extra Radix deps; `Switch` is a dependency-free `role="switch"` button,
+and `ConfirmDialog` is built on the existing `Dialog` (no `alert-dialog` dep).
+Shared `ConfirmDialog`/`DataTable`/`EmptyState` landed in `/components/shared`. Not
+runtime-verified against live Stripe/DB (none here): typecheck + lint + prod build
+pass.
+
 ## 2026-07-19 — Phase 6: storage/phone/email adapters, one email sender
 
 Three swappable concerns landed behind the standard interface+adapter+selector

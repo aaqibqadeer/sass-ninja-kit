@@ -65,6 +65,13 @@ Notes:
   when `STORAGE_PROVIDER=s3`). Email (`lib/email/send.ts`) is not flag-gated — it
   reuses `RESEND_API_KEY` and falls back to console logging in dev. See
   `docs/guides/storage-phone-email.md`.
+- **Phase 7 (admin panel) added no new flag** — it wires the existing `admin`
+  flag to the `/admin` route group (404 when off). The panel is entered by an org
+  admin **or** a super-admin; org-admin tabs (`users`, `organizations`) use
+  `requireRole('admin')`, super-admin tabs (`plans`, `subscriptions`, `settings`)
+  use `requireSuperAdmin()` — the two tiers never collapse (§14). `subscriptions`
+  additionally requires `payments.enabled`; annual price fields in the plan editor
+  show only when `payments.annualBilling` is on.
 
 ## Adding a flag (checklist, per CLAUDE.md §7)
 
