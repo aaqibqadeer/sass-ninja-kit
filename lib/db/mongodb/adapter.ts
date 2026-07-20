@@ -466,6 +466,14 @@ export class MongoAdapter implements DatabaseAdapter {
     return doc ? toOrganization(doc) : null;
   }
 
+  async getOrganizationBySlug(slug: string): Promise<Organization | null> {
+    await this.connect();
+    const doc = await OrganizationModel.findOne({ slug })
+      .lean<OrganizationDoc>()
+      .exec();
+    return doc ? toOrganization(doc) : null;
+  }
+
   async updateOrganization(
     id: string,
     patch: UpdateOrganization,

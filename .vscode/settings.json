@@ -1,0 +1,51 @@
+{
+  "files.associations": {
+    ".env": "properties",
+    ".env.local": "properties",
+    ".env.example": "properties",
+    ".env.test": "properties",
+    ".env.test.example": "properties",
+    ".env.*": "properties",
+    "*.env": "properties",
+    "*.env.*": "properties"
+  },
+  "[properties]": {
+    "editor.formatOnSave": false
+  },
+  "editor.tokenColorCustomizations": {
+    "textMateRules": [
+      {
+        "scope": [
+          "source.env",
+          "comment.line.number-sign.env",
+          "punctuation.definition.comment.env"
+        ],
+        "settings": {
+          "foreground": "#6A9955",
+          "fontStyle": "italic"
+        }
+      },
+      {
+        "scope": "variable.other.env",
+        "settings": {
+          "foreground": "#9CDCFE"
+        }
+      },
+      {
+        "scope": "keyword.operator.assignment.env",
+        "settings": {
+          "foreground": "#D4D4D4"
+        }
+      },
+      {
+        "scope": [
+          "string.quoted.double.env",
+          "string.quoted.single.env"
+        ],
+        "settings": {
+          "foreground": "#CE9178"
+        }
+      }
+    ]
+  }
+}

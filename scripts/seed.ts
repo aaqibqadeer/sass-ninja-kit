@@ -9,16 +9,26 @@
  * phase adds its seed entry here in the same commit as its schema and adapter
  * method.
  *
- * Run with `pnpm seed` (or `npm run seed`). Idempotent on users (looked up by
- * email); the organization is created fresh, so run against an empty database.
- * Requires valid DB + AUTH env (see .env.example).
+ * Run with `pnpm seed` (or `npm run seed`). Idempotent — safe to re-run against
+ * an existing database (users, org, memberships, and pending invites are
+ * looked up before insert). Requires valid DB + AUTH env (see .env.example).
  */
 
 import { randomUUID } from "node:crypto";
 
+import "./load-env";
 import { env } from "@/config/env.schema";
 import { auth } from "@/lib/auth";
-import { db, INVITATION_STATUSES, ORG_ROLES } from "@/lib/db";
+import {
+  db,
+  INVITATION_STATUSES,
+  ORG_ROLES,
+  type Invitation,
+  type NewInvitation,
+  type NewOrganization,
+  type NewOrganizationMember,
+  type Organization,
+} from "@/lib/db";
 
 /** Shared password for the seeded users — local testing only. */
 const SEED_PASSWORD = "Password123!";
@@ -40,23 +50,50 @@ async function ensureUser(
   return user;
 }
 
+async function ensureOrganization(
+  input: NewOrganization,
+): Promise<Organization> {
+  const existing = await db.getOrganizationBySlug(input.slug);
+  if (existing) return existing;
+  return db.createOrganization(input);
+}
+
+async function ensureMember(
+  input: NewOrganizationMember,
+): Promise<Awaited<ReturnType<typeof db.addMember>>> {
+  const existing = await db.getMembership(input.organizationId, input.userId);
+  if (existing) return existing;
+  return db.addMember(input);
+}
+
+async function ensurePendingInvitation(
+  input: NewInvitation,
+): Promise<Invitation> {
+  const existing = await db.getPendingInvitationForEmail(
+    input.organizationId,
+    input.email,
+  );
+  if (existing) return existing;
+  return db.createInvitation(input);
+}
+
 async function main(): Promise<void> {
   console.log(`Seeding via the "${env.DB_PROVIDER}" adapter…`);
 
   const admin = await ensureUser("admin@example.com", "Admin User");
   const member = await ensureUser("user@example.com", "Regular User");
 
-  const org = await db.createOrganization({
+  const org = await ensureOrganization({
     name: "Test Organization",
     slug: "test-org",
   });
 
-  await db.addMember({
+  await ensureMember({
     organizationId: org.id,
     userId: admin.id,
     role: ORG_ROLES.admin,
   });
-  await db.addMember({
+  await ensureMember({
     organizationId: org.id,
     userId: member.id,
     role: ORG_ROLES.user,
@@ -71,7 +108,7 @@ async function main(): Promise<void> {
   }
 
   // A pending invitation so the members UI has data to render.
-  const invite = await db.createInvitation({
+  const invite = await ensurePendingInvitation({
     organizationId: org.id,
     email: "invitee@example.com",
     role: ORG_ROLES.user,

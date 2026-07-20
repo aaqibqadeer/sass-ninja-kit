@@ -48,6 +48,7 @@ export interface DatabaseAdapter {
   /* -- Organizations (tenant boundary) ------------------------------------ */
   createOrganization(input: NewOrganization): Promise<Organization>;
   getOrganizationById(id: string): Promise<Organization | null>;
+  getOrganizationBySlug(slug: string): Promise<Organization | null>;
   updateOrganization(
     id: string,
     patch: UpdateOrganization,

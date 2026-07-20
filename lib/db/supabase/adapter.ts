@@ -346,6 +346,17 @@ export class SupabaseAdapter implements DatabaseAdapter {
     return data ? toOrganization(data as OrganizationRow) : null;
   }
 
+  async getOrganizationBySlug(slug: string): Promise<Organization | null> {
+    const { data, error } = await this.client
+      .from(TABLES.organizations)
+      .select()
+      .eq("slug", slug)
+      .maybeSingle();
+    if (error)
+      throw new Error(`supabase getOrganizationBySlug: ${error.message}`);
+    return data ? toOrganization(data as OrganizationRow) : null;
+  }
+
   async updateOrganization(
     id: string,
     patch: UpdateOrganization,
