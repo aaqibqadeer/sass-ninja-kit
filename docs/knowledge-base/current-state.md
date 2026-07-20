@@ -3,7 +3,23 @@
 > **Read this first, every session** (CLAUDE.md §11). Living **snapshot** —
 > overwritten, not appended. Keep it terse. Update at the end of every phase.
 
-_Last updated: 2026-07-19 — **Template v1.0.0, feature-complete.**_
+_Last updated: 2026-07-20 — **Template v1.0.0, feature-complete.**_
+
+## Marketing + app shell (post-v1.0.0)
+
+- **Public landing page** (`app/page.tsx`) replaces the Phase-0 smoke card:
+  static + auth-free (renders on any fork, SEO-friendly). Sections are
+  feature-scoped `components/marketing/` (`Hero`, `FeatureShowcase`,
+  `CtaSection`); header/footer are shared (`SiteHeader`, `SiteFooter`,
+  `BrandMark`). Primary CTA → `/login`.
+- **Signed-in nav** (`components/shared/AppHeader` + client `AppNav`): global bar
+  reused by `/dashboard`, `/settings/organization`, and the `/admin` layout.
+  Derives links from flags + role (Dashboard always; Organization when
+  `multiTenant` && org-admin; Admin when `features.admin` && admin/super-admin),
+  and mounts `WorkspaceSwitcher` + `LogoutButton`. Dashboard slimmed to a
+  welcome + account card (nav/switcher/sign-out moved into the header).
+- Verified: typecheck; landing renders light+dark (headless); `/login` 200,
+  `/dashboard`→307 `/login`. Signed-in pages still need a live DB to render.
 
 ## Phases (all ✅ complete)
 
