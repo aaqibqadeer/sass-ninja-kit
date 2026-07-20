@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { AppHeader } from "@/components/shared/AppHeader";
 import { InviteMemberForm } from "@/components/org/InviteMemberForm";
 import { MemberList, type MemberRow } from "@/components/org/MemberList";
 import {
@@ -55,45 +56,50 @@ export default async function OrganizationSettingsPage() {
     }));
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Organization</h1>
-        <p className="text-muted-foreground text-sm">
-          {org?.name} — manage members and invitations.
-        </p>
-      </div>
+    <>
+      <AppHeader session={session} />
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-6">
+        <div>
+          <h1 className="text-2xl font-semibold">Organization</h1>
+          <p className="text-muted-foreground text-sm">
+            {org?.name} — manage members and invitations.
+          </p>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Members</CardTitle>
-          <CardDescription>
-            People with access to this organization.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MemberList members={members} currentUserId={session.user.id} />
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Members</CardTitle>
+            <CardDescription>
+              People with access to this organization.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MemberList members={members} currentUserId={session.user.id} />
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Invite a member</CardTitle>
-          <CardDescription>They&apos;ll receive an email link.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <InviteMemberForm />
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Invite a member</CardTitle>
+            <CardDescription>
+              They&apos;ll receive an email link.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <InviteMemberForm />
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Pending invitations</CardTitle>
-          <CardDescription>Invitations not yet accepted.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <PendingInvites invites={pending} />
-        </CardContent>
-      </Card>
-    </main>
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending invitations</CardTitle>
+            <CardDescription>Invitations not yet accepted.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PendingInvites invites={pending} />
+          </CardContent>
+        </Card>
+      </main>
+    </>
   );
 }

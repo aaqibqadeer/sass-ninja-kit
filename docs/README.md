@@ -9,7 +9,8 @@ Documentation index for the ninjakit boilerplate.
 
 - `current-state.md` — living snapshot of what's built, which flags/providers are
   configured in this fork, and known rough edges. **Read first.**
-- `decisions.md` — why non-obvious choices were made (newest first).
+- `decisions.md` — why non-obvious choices were made (newest first); older
+  entries in `decisions-archive.md`.
 - `glossary.md` — project-specific terms.
 
 ## architecture/ — living reference docs

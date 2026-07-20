@@ -1,34 +1,25 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { CtaSection } from "@/components/marketing/CtaSection";
+import { FeatureShowcase } from "@/components/marketing/FeatureShowcase";
+import { Hero } from "@/components/marketing/Hero";
+import { SiteFooter } from "@/components/shared/SiteFooter";
+import { SiteHeader } from "@/components/shared/SiteHeader";
 
-// Phase 0 smoke page: proves shadcn/ui (button, card, input, label) and the
-// Tailwind theme are wired up. Replaced with real UI in a later phase.
+/**
+ * Public landing page — the front door of the template and its shareable intro.
+ * Deliberately static and auth-free: it must render on any fork (even before a
+ * DB/auth provider is configured) and stays SEO-friendly. "Log in" routes
+ * visitors into the app, where `AppHeader` takes over the navigation.
+ */
 export default function Home() {
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>sass-ninja-kit</CardTitle>
-          <CardDescription>
-            Phase 0 foundation — shadcn/ui is wired up.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="you@example.com" />
-          </div>
-          <Button className="w-full">It works</Button>
-        </CardContent>
-      </Card>
-    </main>
+    <div className="flex min-h-full flex-col">
+      <SiteHeader />
+      <main className="flex-1">
+        <Hero />
+        <FeatureShowcase />
+        <CtaSection />
+      </main>
+      <SiteFooter />
+    </div>
   );
 }
