@@ -16,6 +16,19 @@ not a single product). Honor these rules for every change:
 5. Stay in scope: don't add features, routes, or UI beyond the current phase.
    Note gaps with a `// Deferred to later phase` comment instead of building.
 6. Prefer editing/extending existing files over regenerating whole files.
+7. Theming is token-based: never hardcode a color/font/spacing value. Add it to
+   `config/theme.ts` and mirror it in `app/globals.css` (this fork is Tailwind
+   **v4** — CSS-first, no `tailwind.config.ts`). Use utilities like `bg-primary`.
+8. Two role tiers never collapse: org roles (`organization_members.role`) vs the
+   platform `super_admin` flag on the user. `requireSuperAdmin()` is separate
+   from `requireRole('admin')`.
+9. Validate every API input and env var with Zod at the boundary. TypeScript
+   strict; no `any`. Server Components by default; add `'use client'` only when
+   interactivity truly needs it.
 
-Stack: Next.js 15 (App Router) + TypeScript + TailwindCSS + shadcn/ui on Vercel.
-See `docs/architecture/overview.md`.
+Before starting, read `docs/knowledge-base/current-state.md` (what's built, which
+flags/providers are configured in this fork). Small, committable phases — finish
+one coherent unit, then stop.
+
+Stack: Next.js 15 (App Router) + TypeScript + TailwindCSS v4 + shadcn/ui on
+Vercel. See `docs/architecture/overview.md` and the full rulebook in `CLAUDE.md`.
